@@ -3,14 +3,14 @@ import { Projectile } from '../entities/Projectile';
 import type { ProjectileSpawn } from '../types/combat';
 
 export class ProjectileSystem {
-  readonly group: Phaser.Physics.Arcade.Group;
+  readonly group: Phaser.GameObjects.Group;
 
   private readonly live = new Set<Projectile>();
   private readonly scene: Phaser.Scene;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.group = scene.physics.add.group();
+    this.group = scene.add.group();
   }
 
   spawn(spawn: ProjectileSpawn): Projectile {
@@ -28,6 +28,10 @@ export class ProjectileSystem {
         this.remove(projectile);
       }
     }
+  }
+
+  has(projectile: Projectile): boolean {
+    return this.live.has(projectile);
   }
 
   remove(projectile: Projectile): void {

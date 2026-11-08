@@ -49,6 +49,7 @@ export interface PlayerDebugSnapshot {
 
 export interface DebugSnapshot {
   players: readonly PlayerDebugSnapshot[];
+  enemies: number;
   projectiles: number;
   fps: number;
 }

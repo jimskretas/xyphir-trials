@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 4 complete. Milestone 5 next.
+**Current status:** Milestone 5 complete. Milestone 6 next.
 
 ---
 
@@ -241,7 +241,7 @@ All values live in config files, not in entities.
 | 2 | Screen-space HUD shell and co-op camera | Complete | 1 |
 | 3 | Player health, damage and downed state | Complete | 2 |
 | 4 | Projectile system, Fireball and cooldowns | Complete | 3 |
-| 5 | Grunt enemies, enemy fire and combat loop | Planned | 3, 4 |
+| 5 | Grunt enemies, enemy fire and combat loop | Complete | 3, 4 |
 | 6 | Shield, directional defense and reflection | Planned | 4, 5 |
 | 7 | Encounter flow, boss and win/lose conditions | Planned | 5, 6 |
 | 8 | Start screen, instructions, restart and result flow | Planned | 7 |
@@ -572,7 +572,24 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 5 — Grunt enemies, enemy fire and combat loop
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `EnemyBase` with shared health, nearest-living-player targeting, steering, damage flash, death handling and wall-unsticking fallback.
+- `Grunt` chase/retreat behaviour around a preferred range, aimed enemy bolts on a 1800 ms cooldown, and clean death.
+- `EncounterSystem` owns the enemy group, spawns the four-grunt opening wave at fixed arena points, collects enemy shots, tracks the living count and destroys dead enemies.
+- Four grunt spawn points around the arena.
+- Player-team projectiles damage grunts and are removed; enemy-team projectiles damage players and are removed.
+- Same-team projectiles are ignored, so players cannot damage each other with fireballs.
+- Grunt and enemy-bolt placeholder textures.
+- Enemy vs wall, enemy vs enemy, and enemy vs player colliders.
+- HUD objective tracks living grunts and reports the wave as defeated; defeat text still takes priority.
+- Debug panel shows living enemies and active projectiles.
+
+**Deviation:** `ProjectileSystem` and `EncounterSystem` now use plain `GameObjects.Group` containers instead of Arcade physics groups. Adding a body-backed object to a `Phaser.Physics.Arcade.Group` applies that group's default body properties, which reset projectile velocity to zero. The projectiles and enemies already own dynamic bodies, and Arcade colliders accept plain groups, so they remain fully physical. This also fixes a Milestone 4 defect where fireballs were spawned but stationary.
+
+**Verification:** Typecheck and production build pass. Browser-tested: four grunts spawn and advance to attack range, enemy bolts travel toward the nearest player and apply 10 damage with the 700 ms invulnerability window, player fireballs travel, hit grunts for 20 and destroy them after 60 damage, dead grunts leave the world and reduce the objective count, fireballs do not damage either player, the objective updates to `The first wave is defeated.`, and no console errors occur.
 
 **Objective:** Add the first enemy type, make it damage players and take damage from fireballs, completing the basic PvE loop.
 

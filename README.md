@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
 
-This repository currently contains the local co-op movement and HUD milestone: two keyboard-controlled players inside a walled arena, with independent movement, persistent facing directions, a co-op camera and a screen-space HUD.
+This repository currently contains the local co-op combat loop: two keyboard-controlled players inside a walled arena, fighting an opening wave of grunts with fireballs, while a co-op camera and screen-space HUD keep the action readable.
 
 ## Requirements
 
@@ -62,10 +62,10 @@ src/
   game/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
-    entities/             Player, Projectile
+    entities/             Player, Projectile, EnemyBase, Grunt
     components/           Movement, Facing, Health, Cooldown
     abilities/            FireballAbility
-    systems/              InputSystem, CoopCamera, ProjectileSystem
+    systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
@@ -81,6 +81,8 @@ src/
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
 - Projectiles carry team, current owner and original source IDs. The projectile system handles spawning, lifetime and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
+- `EncounterSystem` owns enemy spawning, the living-enemy count and enemy shot collection. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` supplies only its AI behaviour.
+- Projectile damage rules live in the scene: player-team projectiles hit enemies, enemy-team projectiles hit players, and same-team hits are ignored.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.
 - Placeholder art is generated at runtime as textures, so there are no binary assets yet.

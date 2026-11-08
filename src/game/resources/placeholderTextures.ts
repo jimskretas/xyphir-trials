@@ -31,6 +31,8 @@ export function createPlaceholderTextures(scene: Phaser.Scene): void {
   }
 
   createFireballTexture(scene);
+  createEnemyBoltTexture(scene);
+  createGruntTexture(scene);
 }
 
 function createPlayerTexture(
@@ -86,5 +88,58 @@ function createFireballTexture(scene: Phaser.Scene): void {
   graphics.fillCircle(center, center, 3);
 
   graphics.generateTexture(TextureKeys.Fireball, size, size);
+  graphics.destroy();
+}
+
+function createEnemyBoltTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TextureKeys.EnemyBolt)) {
+    return;
+  }
+
+  const size = 18;
+  const center = size / 2;
+  const graphics = scene.make.graphics({}, false);
+
+  graphics.fillStyle(0xa855f7, 0.25);
+  graphics.fillCircle(center, center, 8);
+
+  graphics.fillStyle(0xc084fc, 1);
+  graphics.fillCircle(center, center, 5);
+
+  graphics.fillStyle(0xf5d0fe, 1);
+  graphics.fillCircle(center, center, 2);
+
+  graphics.generateTexture(TextureKeys.EnemyBolt, size, size);
+  graphics.destroy();
+}
+
+function createGruntTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TextureKeys.Grunt)) {
+    return;
+  }
+
+  const radius = 14;
+  const size = radius * 2 + 10;
+  const center = size / 2;
+  const graphics = scene.make.graphics({}, false);
+
+  graphics.fillStyle(0x9f1239, 0.2);
+  graphics.fillCircle(center, center, center - 1);
+
+  graphics.fillStyle(0x9f1239, 1);
+  graphics.fillCircle(center, center, radius);
+
+  graphics.lineStyle(2, 0x4c0519, 1);
+  graphics.strokeCircle(center, center, radius);
+
+  graphics.fillStyle(0xfecdd3, 1);
+  graphics.beginPath();
+  graphics.moveTo(center + 16, center);
+  graphics.lineTo(center + 5, center - 7);
+  graphics.lineTo(center + 5, center + 7);
+  graphics.closePath();
+  graphics.fillPath();
+
+  graphics.generateTexture(TextureKeys.Grunt, size, size);
   graphics.destroy();
 }
