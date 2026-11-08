@@ -1,23 +1,26 @@
 import Phaser from 'phaser';
-import { ARENA, CAMERA, PLAYER } from '../config/gameplayConfig';
+import { ARENA, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
-import { COLORS, toCssColor } from '../config/theme';
+import { SceneKeys } from '../config/sceneKeys';
 import { Player } from '../entities/Player';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
+import { CoopCamera } from '../systems/CoopCamera';
 import { InputSystem } from '../systems/InputSystem';
-import { DebugOverlay } from '../ui/DebugOverlay';
+import { createPlayerHudState } from '../ui/hudState';
+import type { DebugSnapshot, HudModel } from '../ui/HudModel';
 import { Arena } from '../world/Arena';
+
+const OBJECTIVE_TEXT = 'Survive the trials.';
 
 export class ArenaScene extends Phaser.Scene {
   private arena!: Arena;
   private players: Player[] = [];
   private inputSystem!: InputSystem;
-  private debugOverlay!: DebugOverlay;
-  private cameraTarget!: Phaser.GameObjects.Zone;
-  private readonly midpoint = new Phaser.Math.Vector2();
+  private coopCamera!: CoopCamera;
+  private hudModel!: HudModel;
 
   constructor() {
-    super('ArenaScene');
+    super(SceneKeys.Arena);
   }
 
   create(): void {
@@ -29,9 +32,29 @@ export class ArenaScene extends Phaser.Scene {
     this.physics.add.collider(this.players, this.arena.walls);
     this.physics.add.collider(this.players[0], this.players[1]);
 
+    const { bounds } = this.arena;
+    this.physics.world.setBounds(
+      bounds.x,
+      bounds.y,
+      bounds.width,
+      bounds.height,
+    );
+
     this.inputSystem = new InputSystem(this);
-    this.setupCamera();
-    this.debugOverlay = new DebugOverlay(this);
+    this.coopCamera = new CoopCamera(this, this.cameras.main, bounds);
+    this.coopCamera.update(this.players);
+
+    this.hudModel = {
+      objective: OBJECTIVE_TEXT,
+      players: this.players.map((player) =>
+        createPlayerHudState(player.id),
+      ),
+      boss: null,
+      debug: { players: [], fps: 0 },
+      outcome: null,
+    };
+
+    this.scene.launch(SceneKeys.Hud, { model: this.hudModel });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
@@ -43,19 +66,8 @@ export class ArenaScene extends Phaser.Scene {
       player.update(this.inputSystem.getState(player.id).movement);
     }
 
-    this.updateCameraTarget();
-
-    this.debugOverlay.update({
-      players: this.players.map((player) => ({
-        label: PLAYER_CONTROLS[player.id].label,
-        position: { x: player.x, y: player.y },
-        velocity: player.body.velocity,
-        direction: player.movementDirection,
-        facingDegrees: player.facingDegrees,
-        blocked: player.body.blocked,
-      })),
-      fps: this.game.loop.actualFps,
-    });
+    this.coopCamera.update(this.players);
+    this.hudModel.debug = this.createDebugSnapshot();
   }
 
   private createPlayers(): Player[] {
@@ -74,57 +86,24 @@ export class ArenaScene extends Phaser.Scene {
     ];
   }
 
-  private computeMidpoint(): void {
-    let x = 0;
-    let y = 0;
-
-    for (const player of this.players) {
-      x += player.x;
-      y += player.y;
-    }
-
-    this.midpoint.set(x / this.players.length, y / this.players.length);
-  }
-
-  private updateCameraTarget(): void {
-    this.computeMidpoint();
-    this.cameraTarget.setPosition(this.midpoint.x, this.midpoint.y);
-  }
-
-  private setupCamera(): void {
-    const camera = this.cameras.main;
-    const { bounds } = this.arena;
-
-    this.physics.world.setBounds(
-      bounds.x,
-      bounds.y,
-      bounds.width,
-      bounds.height,
-    );
-
-    this.computeMidpoint();
-    this.cameraTarget = this.add.zone(
-      this.midpoint.x,
-      this.midpoint.y,
-      1,
-      1,
-    );
-
-    camera.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
-    camera.setBackgroundColor(toCssColor(COLORS.background));
-    camera.startFollow(
-      this.cameraTarget,
-      false,
-      CAMERA.followLerp,
-      CAMERA.followLerp,
-    );
-    camera.setDeadzone(CAMERA.deadzoneWidth, CAMERA.deadzoneHeight);
+  private createDebugSnapshot(): DebugSnapshot {
+    return {
+      players: this.players.map((player) => ({
+        label: PLAYER_CONTROLS[player.id].label,
+        position: { x: player.x, y: player.y },
+        velocity: player.body.velocity,
+        direction: player.movementDirection,
+        facingDegrees: player.facingDegrees,
+        blocked: player.body.blocked,
+      })),
+      fps: this.game.loop.actualFps,
+    };
   }
 
   private handleShutdown(): void {
+    this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();
-    this.debugOverlay.destroy();
-    this.cameraTarget.destroy();
+    this.coopCamera.destroy();
     this.arena.destroy();
 
     for (const player of this.players) {

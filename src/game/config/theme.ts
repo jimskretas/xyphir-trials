@@ -18,6 +18,7 @@ export const COLORS = {
 export const UI_COLORS = {
   debugText: '#a9bfd4',
   hintText: '#5f7288',
+  objectiveText: '#cbd8e6',
   debugBackground: 'rgba(8, 11, 17, 0.85)',
 } as const;
 

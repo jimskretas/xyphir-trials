@@ -14,12 +14,14 @@ export const PLAYER = {
   radius: 18,
   speed: 260,
   spawnSpacing: 120,
+  maxHealth: 100,
 } as const;
 
 export const CAMERA = {
   followLerp: 0.12,
-  deadzoneWidth: 64,
-  deadzoneHeight: 64,
+  zoomLerp: 0.1,
+  minZoom: 0.55,
+  padding: 160,
 } as const;
 
 export const DEBUG = {

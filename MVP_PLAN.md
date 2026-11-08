@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 1 complete. Milestone 2 next.
+**Current status:** Milestone 2 complete. Milestone 3 next.
 
 ---
 
@@ -238,7 +238,7 @@ All values live in config files, not in entities.
 | --- | --- | --- | --- |
 | 0 | Baseline review and MVP plan | Complete | — |
 | 1 | Local co-op movement, facing and input | Complete | 0 |
-| 2 | Screen-space HUD shell and co-op camera | Planned | 1 |
+| 2 | Screen-space HUD shell and co-op camera | Complete | 1 |
 | 3 | Player health, damage and downed state | Planned | 2 |
 | 4 | Projectile system, Fireball and cooldowns | Planned | 3 |
 | 5 | Grunt enemies, enemy fire and combat loop | Planned | 3, 4 |
@@ -352,7 +352,21 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 2 — Screen-space HUD shell and co-op camera
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `SceneKeys` centralizes scene identifiers.
+- `HudScene` runs in parallel with its own camera and renders all screen-space UI.
+- `HudModel` is the shared data contract; `ArenaScene` owns and updates it, `HudScene` polls it.
+- `PlayerHudPanel` for each player with name, health bar placeholder, numeric health and control labels.
+- `BossHealthBar` exists but stays hidden until a boss state is supplied.
+- Objective line and controls hint.
+- `DebugOverlay` moved into `HudScene`, so camera zoom cannot scale or shift it.
+- `CoopCamera` follows the living players' midpoint and smoothly zooms between `minZoom` and 1 to fit both, with arena bounds applied.
+- HUD is stopped on arena shutdown and relaunched on scene creation.
+
+**Verification:** Typecheck and production build pass. Browser-tested: HUD remains fixed and readable at zoom 1 and while zoomed out, both players stay in view when separated, camera returns to zoom 1 when they regroup, camera clamps at arena edges, no duplicate HUD after reload, and no console errors.
 
 **Objective:** Separate screen-space UI from the zooming gameplay camera and keep both players visible when they split up.
 

@@ -2,32 +2,7 @@ import Phaser from 'phaser';
 import { PLAYER_CONTROLS } from '../config/controls';
 import { DEBUG, VIEWPORT } from '../config/gameplayConfig';
 import { UI_COLORS } from '../config/theme';
-
-interface DebugVector {
-  x: number;
-  y: number;
-}
-
-interface BlockedState {
-  left: boolean;
-  right: boolean;
-  up: boolean;
-  down: boolean;
-}
-
-export interface PlayerDebugSnapshot {
-  label: string;
-  position: DebugVector;
-  velocity: DebugVector;
-  direction: DebugVector;
-  facingDegrees: number;
-  blocked: BlockedState;
-}
-
-export interface DebugSnapshot {
-  players: readonly PlayerDebugSnapshot[];
-  fps: number;
-}
+import type { DebugSnapshot } from './HudModel';
 
 const HINT_TEXT = [
   `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}`,
@@ -54,18 +29,16 @@ export class DebugOverlay {
         padding: { x: 10, y: 8 },
         lineSpacing: 4,
       })
-      .setScrollFactor(0)
       .setDepth(10000)
       .setVisible(this.visible);
 
     this.hint = scene.add
-      .text(16, VIEWPORT.height - 16, HINT_TEXT, {
+      .text(VIEWPORT.width / 2, VIEWPORT.height - 14, HINT_TEXT, {
         fontFamily: 'Consolas, "Courier New", monospace',
         fontSize: '13px',
         color: UI_COLORS.hintText,
       })
-      .setOrigin(0, 1)
-      .setScrollFactor(0)
+      .setOrigin(0.5, 1)
       .setDepth(10000);
 
     this.overlayKey =

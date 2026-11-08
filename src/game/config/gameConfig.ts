@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ArenaScene } from '../scenes/ArenaScene';
+import { HudScene } from '../scenes/HudScene';
 import { toCssColor, COLORS } from './theme';
 import { VIEWPORT } from './gameplayConfig';
 
@@ -21,6 +22,6 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
         debug: false,
       },
     },
-    scene: [ArenaScene],
+    scene: [ArenaScene, HudScene],
   };
 }

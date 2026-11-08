@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
 
-This repository currently contains the local co-op movement milestone: two keyboard-controlled players inside a walled arena, with independent movement and persistent facing directions.
+This repository currently contains the local co-op movement and HUD milestone: two keyboard-controlled players inside a walled arena, with independent movement, persistent facing directions, a co-op camera and a screen-space HUD.
 
 ## Requirements
 
@@ -49,14 +49,14 @@ src/
   main.ts                 Game bootstrap (Phaser.Game + Vite HMR cleanup)
   style.css               Page/canvas layout
   game/
-    config/               Game config, gameplay tuning, controls, palette
-    scenes/               ArenaScene: orchestration only
+    config/               Game config, gameplay tuning, controls, scene keys, palette
+    scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
     entities/             Player entity
     components/           MovementComponent, FacingComponent
-    systems/              InputSystem
+    systems/              InputSystem, CoopCamera
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
-    ui/                   Debug overlay and controls hint
+    ui/                   HUD model, player panels, boss bar, debug overlay
 ```
 
 ### Architectural notes
@@ -65,6 +65,8 @@ src/
 - Facing follows the last non-zero movement direction and persists when the player stops.
 - All key bindings live in `config/controls.ts` so both players share one input map.
 - `InputSystem` reads both players once per frame and exposes normalized intent to the scene.
+- `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
+- `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.
 - Placeholder art is generated at runtime as textures, so there are no binary assets yet.
