@@ -1,0 +1,20 @@
+{
+  "name": "xyphir-trials",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cooperative top-down dungeon combat game built with Phaser 4, TypeScript and Vite.",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
+  }
+}
