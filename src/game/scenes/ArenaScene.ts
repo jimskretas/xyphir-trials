@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SHIELD } from '../config/combatConfig';
 import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
@@ -36,6 +37,7 @@ export class ArenaScene extends Phaser.Scene {
   private hudModel!: HudModel;
   private debugDamageKeys: DebugDamageKey[] = [];
   private outcomeHandled = false;
+  private reflections = 0;
 
   constructor() {
     super(SceneKeys.Arena);
@@ -45,6 +47,7 @@ export class ArenaScene extends Phaser.Scene {
     createPlaceholderTextures(this);
 
     this.outcomeHandled = false;
+    this.reflections = 0;
     this.arena = new Arena(this);
     this.players = this.createPlayers();
 
@@ -106,7 +109,7 @@ export class ArenaScene extends Phaser.Scene {
         createPlayerHudState(player.id),
       ),
       boss: null,
-      debug: { players: [], enemies: 0, projectiles: 0, fps: 0 },
+      debug: { players: [], enemies: 0, projectiles: 0, reflections: 0, fps: 0 },
       outcome: null,
     };
 
@@ -129,6 +132,10 @@ export class ArenaScene extends Phaser.Scene {
         if (spawn) {
           this.projectileSystem.spawn(spawn);
         }
+      }
+
+      if (input.shield) {
+        player.tryShield();
       }
     }
 
@@ -197,15 +204,63 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    if (
-      !this.projectileSystem.has(projectile) ||
-      projectile.team !== 'enemies'
-    ) {
+    if (!this.projectileSystem.has(projectile)) {
+      return;
+    }
+
+    if (this.tryShieldReflect(projectile, player)) {
+      return;
+    }
+
+    if (projectile.team !== 'enemies' || !player.isAlive) {
       return;
     }
 
     player.takeDamage(projectile.damage);
     this.projectileSystem.remove(projectile);
+  }
+
+  private tryShieldReflect(projectile: Projectile, player: Player): boolean {
+    if (!player.isAlive || !player.shield.isActive) {
+      return false;
+    }
+
+    const facingAngle = player.facingVector.angle();
+
+    if (
+      !projectile.isMovingToward(player.x, player.y) ||
+      !player.shield.blocks(
+        projectile.x,
+        projectile.y,
+        player.x,
+        player.y,
+        facingAngle,
+      )
+    ) {
+      return false;
+    }
+
+    if (projectile.isReflectionLocked) {
+      return true;
+    }
+
+    if (!projectile.isReflectable) {
+      this.projectileSystem.remove(projectile);
+      return true;
+    }
+
+    projectile.reflect({
+      team: 'players',
+      ownerId: player.id,
+      angle: facingAngle,
+      offset: SHIELD.reflectOffset,
+      lockMs: SHIELD.reflectLockMs,
+    });
+
+    player.flashShield();
+    this.reflections += 1;
+    this.cameras.main.shake(90, 0.004);
+    return true;
   }
 
   private asProjectile(
@@ -295,6 +350,14 @@ export class ArenaScene extends Phaser.Scene {
         state.fireball.ready = player.fireball.cooldown.isReady;
         state.fireball.ratio = player.fireball.cooldown.readyRatio;
       }
+
+      if (state.shield) {
+        state.shield.active = player.shield.isActive;
+        state.shield.ready = player.shield.cooldown.isReady;
+        state.shield.ratio = player.shield.isActive
+          ? player.shield.activeRatio
+          : player.shield.cooldown.readyRatio;
+      }
     }
   }
 
@@ -339,6 +402,7 @@ export class ArenaScene extends Phaser.Scene {
       })),
       enemies: this.encounterSystem.aliveCount,
       projectiles: this.projectileSystem.count,
+      reflections: this.reflections,
       fps: this.game.loop.actualFps,
     };
   }

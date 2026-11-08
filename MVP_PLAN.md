@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 5 complete. Milestone 6 next.
+**Current status:** Milestone 6 complete. Milestone 7 next.
 
 ---
 
@@ -242,7 +242,7 @@ All values live in config files, not in entities.
 | 3 | Player health, damage and downed state | Complete | 2 |
 | 4 | Projectile system, Fireball and cooldowns | Complete | 3 |
 | 5 | Grunt enemies, enemy fire and combat loop | Complete | 3, 4 |
-| 6 | Shield, directional defense and reflection | Planned | 4, 5 |
+| 6 | Shield, directional defense and reflection | Complete | 4, 5 |
 | 7 | Encounter flow, boss and win/lose conditions | Planned | 5, 6 |
 | 8 | Start screen, instructions, restart and result flow | Planned | 7 |
 | 9 | Audio, visual polish, balance and final QA | Planned | 8 |
@@ -656,7 +656,24 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 6 — Shield, directional defense and reflection
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `ShieldComponent` with an 800 ms active window, 1800 ms cooldown, a 140° frontal arc and flash state.
+- Shield activation through `G` and Numpad `2`, using the existing `InputSystem` shield action.
+- Frontal shield arc drawn in the player's colour and facing direction, with a bright flash on reflection.
+- Directional protection: only projectiles inside the frontal arc and moving toward the player are reflected or blocked; side and rear hits behave normally.
+- Enemy bolts reflected by a shield switch to the player team, keep their original source ID, take the shield owner as owner, travel in the shield owner's facing direction, gain the 1.5× reflection multiplier, and leave the reflector's body immediately.
+- Player fireballs hitting an active shield are reflected the same way; player fireballs never damage players.
+- Reflection lock plus repositioning prevents frame-level repeat reflections and self-damage.
+- Reflected projectiles use a cyan tint and 1.3× scale; reflections trigger shield flash and a short camera shake.
+- HUD shows shield ready, active and cooldown states per player.
+- Debug overlay reports the total reflection count.
+
+**Deviation:** The original manual test line 7 implied that a player fireball should damage a player when the shield faces away. That conflicts with the project decision that player-team projectiles never deal friendly fire. The test was corrected to use an enemy bolt; player fireballs now pass through friendly players when the shield does not cover the hit.
+
+**Verification:** Typecheck and production build pass. Browser-tested with both synthetic input and direct state inspection: shield keys activate the correct player, reactivation during the active window is rejected, duration and cooldown expire on schedule, a frontal fireball reflects with 1.5× damage in the reflector's facing direction without damaging the reflector, away/sideways shields do not reflect, a reflected enemy bolt deals 15 damage to a grunt, an uncovered enemy bolt deals 10 to the player, HUD states match the component, reflected projectiles are visibly distinct, and no console errors occur.
 
 **Objective:** Implement the core cooperative mechanic: shield protection and reliable fireball reflection between players.
 
@@ -714,7 +731,7 @@ After each milestone: run typecheck, run the production build, manually test the
 4. The fireball must reflect back in P2's facing direction.
 5. Confirm it does not immediately damage P2.
 6. Aim the reflected fireball at a grunt and confirm damage/kill.
-7. Repeat with P2 facing away; the fireball must damage P2 rather than reflect.
+7. Repeat with P2 facing away; an incoming enemy bolt must damage P2 rather than be reflected.
 8. Repeat with P2 facing sideways; the shield must not block.
 9. Reflect an enemy bolt at a grunt and confirm it damages the enemy team.
 10. Confirm shield duration and cooldown are clear in the HUD.

@@ -20,3 +20,11 @@ export interface ProjectileSpawn {
   sourceId: string;
   preset: ProjectilePreset;
 }
+
+export interface ProjectileReflection {
+  team: Team;
+  ownerId: string;
+  angle: number;
+  offset: number;
+  lockMs: number;
+}

@@ -13,6 +13,7 @@ export const COLORS = {
   playerTwo: 0xf59e0b,
   playerTwoEdge: 0x92400e,
   playerTwoPointer: 0xfffbeb,
+  reflectedProjectile: 0x67e8f9,
 } as const;
 
 export const UI_COLORS = {

@@ -31,7 +31,7 @@ Both players share the same keyboard. No mouse is required.
 | --- | --- |
 | `` ` `` | Toggle debug overlay |
 
-Fireball is implemented. Shield is not implemented yet; its key is already registered and reserved by the central control map.
+Both abilities are implemented. Facing follows the last movement direction; fireballs and shields both use that facing.
 
 ## Debugging
 
@@ -63,7 +63,7 @@ src/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
     entities/             Player, Projectile, EnemyBase, Grunt
-    components/           Movement, Facing, Health, Cooldown
+    components/           Movement, Facing, Health, Cooldown, Shield
     abilities/            FireballAbility
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem
     types/                Combat and projectile types
@@ -81,7 +81,9 @@ src/
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
 - Projectiles carry team, current owner and original source IDs. The projectile system handles spawning, lifetime and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
-- `EncounterSystem` owns enemy spawning, the living-enemy count and enemy shot collection. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` supplies only its AI behaviour.
+- `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
+- A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, gains the reflection damage multiplier, and is repositioned outside the reflector with a short reflection lock.
+- Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` supplies only its AI behaviour.
 - Projectile damage rules live in the scene: player-team projectiles hit enemies, enemy-team projectiles hit players, and same-team hits are ignored.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.

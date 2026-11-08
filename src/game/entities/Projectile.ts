@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
+import { COLORS } from '../config/theme';
 import type {
   ProjectilePreset,
+  ProjectileReflection,
   ProjectileSpawn,
   Team,
 } from '../types/combat';
@@ -13,6 +15,7 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   ownerId: string;
   sourceId: string;
   damage: number;
+  reflectionCount = 0;
 
   private remainingMs: number;
   private reflectLockRemaining = 0;
@@ -57,8 +60,49 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     return this.remainingMs <= 0;
   }
 
+  get isReflectable(): boolean {
+    return this.preset.reflectable;
+  }
+
+  get isReflectionLocked(): boolean {
+    return this.reflectLockRemaining > 0;
+  }
+
   get canReflect(): boolean {
-    return this.preset.reflectable && this.reflectLockRemaining <= 0;
+    return this.isReflectable && !this.isReflectionLocked;
+  }
+
+  isMovingToward(x: number, y: number): boolean {
+    return (
+      this.body.velocity.x * (x - this.x) +
+        this.body.velocity.y * (y - this.y) >
+      0
+    );
+  }
+
+  reflect(reflection: ProjectileReflection): void {
+    this.team = reflection.team;
+    this.ownerId = reflection.ownerId;
+    this.damage = Math.round(
+      this.damage * this.preset.reflectDamageMultiplier,
+    );
+    this.reflectionCount += 1;
+
+    const x = this.x + Math.cos(reflection.angle) * reflection.offset;
+    const y = this.y + Math.sin(reflection.angle) * reflection.offset;
+
+    this.body.reset(x, y);
+    this.setRotation(reflection.angle);
+
+    const velocity = new Phaser.Math.Vector2().setToPolar(
+      reflection.angle,
+      this.preset.speed,
+    );
+    this.setVelocity(velocity.x, velocity.y);
+
+    this.setTint(COLORS.reflectedProjectile);
+    this.setScale(1.3);
+    this.lockReflection(reflection.lockMs);
   }
 
   lockReflection(durationMs: number): void {

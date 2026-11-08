@@ -15,6 +15,16 @@ export const FIREBALL = {
   } satisfies ProjectilePreset,
 } as const;
 
+export const SHIELD = {
+  durationMs: 800,
+  cooldownMs: 1800,
+  arcDegrees: 140,
+  visualRadius: 30,
+  reflectOffset: 40,
+  reflectLockMs: 150,
+  flashMs: 160,
+} as const;
+
 export const GRUNT = {
   maxHealth: 60,
   speed: 90,
