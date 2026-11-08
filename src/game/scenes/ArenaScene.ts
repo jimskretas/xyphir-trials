@@ -4,9 +4,11 @@ import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
 import { Player } from '../entities/Player';
+import { Projectile } from '../entities/Projectile';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import { CoopCamera } from '../systems/CoopCamera';
 import { InputSystem } from '../systems/InputSystem';
+import { ProjectileSystem } from '../systems/ProjectileSystem';
 import { createPlayerHudState } from '../ui/hudState';
 import type { DebugSnapshot, HudModel } from '../ui/HudModel';
 import { Arena } from '../world/Arena';
@@ -22,6 +24,7 @@ export class ArenaScene extends Phaser.Scene {
   private arena!: Arena;
   private players: Player[] = [];
   private inputSystem!: InputSystem;
+  private projectileSystem!: ProjectileSystem;
   private coopCamera!: CoopCamera;
   private hudModel!: HudModel;
   private debugDamageKeys: DebugDamageKey[] = [];
@@ -40,6 +43,17 @@ export class ArenaScene extends Phaser.Scene {
 
     this.physics.add.collider(this.players, this.arena.walls);
     this.physics.add.collider(this.players[0], this.players[1]);
+
+    this.projectileSystem = new ProjectileSystem(this);
+    this.physics.add.collider(
+      this.projectileSystem.group,
+      this.arena.walls,
+      (object) => {
+        if (object instanceof Projectile) {
+          this.projectileSystem.remove(object);
+        }
+      },
+    );
 
     const { bounds } = this.arena;
     this.physics.world.setBounds(
@@ -60,7 +74,7 @@ export class ArenaScene extends Phaser.Scene {
         createPlayerHudState(player.id),
       ),
       boss: null,
-      debug: { players: [], fps: 0 },
+      debug: { players: [], projectiles: 0, fps: 0 },
       outcome: null,
     };
 
@@ -73,12 +87,23 @@ export class ArenaScene extends Phaser.Scene {
     this.inputSystem.update();
 
     for (const player of this.players) {
-      player.update(this.inputSystem.getState(player.id).movement, delta);
+      const input = this.inputSystem.getState(player.id);
+
+      player.update(input.movement, delta);
+
+      if (input.fireball) {
+        const spawn = player.tryFire();
+
+        if (spawn) {
+          this.projectileSystem.spawn(spawn);
+        }
+      }
     }
 
+    this.projectileSystem.update(delta);
     this.handleDebugDamage();
     this.coopCamera.update(this.players);
-    this.syncHudHealth();
+    this.syncHudState();
     this.checkDefeat();
     this.hudModel.debug = this.createDebugSnapshot();
   }
@@ -136,7 +161,7 @@ export class ArenaScene extends Phaser.Scene {
     }
   }
 
-  private syncHudHealth(): void {
+  private syncHudState(): void {
     for (const player of this.players) {
       const state = this.hudModel.players.find(
         (candidate) => candidate.id === player.id,
@@ -148,6 +173,11 @@ export class ArenaScene extends Phaser.Scene {
 
       state.health = player.health.current;
       state.downed = !player.isAlive;
+
+      if (state.fireball) {
+        state.fireball.ready = player.fireball.cooldown.isReady;
+        state.fireball.ratio = player.fireball.cooldown.readyRatio;
+      }
     }
   }
 
@@ -174,6 +204,7 @@ export class ArenaScene extends Phaser.Scene {
         downed: !player.isAlive,
         blocked: player.body.blocked,
       })),
+      projectiles: this.projectileSystem.count,
       fps: this.game.loop.actualFps,
     };
   }
@@ -182,6 +213,7 @@ export class ArenaScene extends Phaser.Scene {
     this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();
     this.removeDebugDamageKeys();
+    this.projectileSystem.destroyAll();
     this.coopCamera.destroy();
     this.arena.destroy();
 

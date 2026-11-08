@@ -72,6 +72,7 @@ export class DebugOverlay {
       lines.push(`debug  H / Num 3 damage (${DEBUG.damageAmount})`);
     }
 
+    lines.push(`proj  ${snapshot.projectiles}`);
     lines.push(`fps  ${snapshot.fps.toFixed(0)}`);
     this.text.setText(lines);
   }

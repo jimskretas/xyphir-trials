@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
+import { FIREBALL } from '../config/combatConfig';
 import { PLAYER } from '../config/gameplayConfig';
 import type { PlayerId } from '../config/controls';
+import { FireballAbility } from '../abilities/FireballAbility';
 import { FacingComponent } from '../components/FacingComponent';
 import { HealthComponent } from '../components/HealthComponent';
 import { MovementComponent } from '../components/MovementComponent';
 import type { MovementInput } from '../components/MovementComponent';
-import { TextureKeys } from '../resources/placeholderTextures';
+import { TextureKeys } from '../resources/textureKeys';
+import type { ProjectileSpawn } from '../types/combat';
 
 const PLAYER_TEXTURES: Record<PlayerId, string> = {
   p1: TextureKeys.PlayerOne,
@@ -22,6 +25,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     PLAYER.maxHealth,
     PLAYER.invulnerabilityMs,
   );
+  readonly fireball = new FireballAbility();
 
   private readonly movement: MovementComponent;
   private readonly facing: FacingComponent;
@@ -51,6 +55,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(input: MovementInput, deltaMs: number): void {
+    this.fireball.update(deltaMs);
     this.health.update(deltaMs);
 
     if (!this.health.isAlive) {
@@ -60,6 +65,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.movement.update(input);
     this.facing.update(input);
+  }
+
+  tryFire(): ProjectileSpawn | null {
+    if (!this.health.isAlive || !this.fireball.tryUse()) {
+      return null;
+    }
+
+    const facing = this.facing.direction;
+
+    return {
+      x: this.x + facing.x * FIREBALL.spawnOffset,
+      y: this.y + facing.y * FIREBALL.spawnOffset,
+      angle: facing.angle(),
+      team: 'players',
+      ownerId: this.id,
+      sourceId: this.id,
+      preset: FIREBALL.projectile,
+    };
   }
 
   takeDamage(amount: number): boolean {

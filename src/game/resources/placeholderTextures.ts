@@ -1,11 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER } from '../config/gameplayConfig';
 import { COLORS } from '../config/theme';
-
-export const TextureKeys = {
-  PlayerOne: 'player-p1',
-  PlayerTwo: 'player-p2',
-} as const;
+import { TextureKeys } from './textureKeys';
 
 interface PlayerPalette {
   glow: number;
@@ -33,6 +29,8 @@ export function createPlaceholderTextures(scene: Phaser.Scene): void {
   for (const [key, palette] of Object.entries(PLAYER_PALETTES)) {
     createPlayerTexture(scene, key, palette);
   }
+
+  createFireballTexture(scene);
 }
 
 function createPlayerTexture(
@@ -66,5 +64,27 @@ function createPlayerTexture(
   graphics.fillPath();
 
   graphics.generateTexture(key, size, size);
+  graphics.destroy();
+}
+
+function createFireballTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TextureKeys.Fireball)) {
+    return;
+  }
+
+  const size = 22;
+  const center = size / 2;
+  const graphics = scene.make.graphics({}, false);
+
+  graphics.fillStyle(0xf97316, 0.22);
+  graphics.fillCircle(center, center, 10);
+
+  graphics.fillStyle(0xfb923c, 1);
+  graphics.fillCircle(center, center, 6);
+
+  graphics.fillStyle(0xfef3c7, 1);
+  graphics.fillCircle(center, center, 3);
+
+  graphics.generateTexture(TextureKeys.Fireball, size, size);
   graphics.destroy();
 }

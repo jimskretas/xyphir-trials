@@ -31,7 +31,7 @@ Both players share the same keyboard. No mouse is required.
 | --- | --- |
 | `` ` `` | Toggle debug overlay |
 
-Fireball and shield are not implemented yet; their keys are already registered and reserved by the central control map.
+Fireball is implemented. Shield is not implemented yet; its key is already registered and reserved by the central control map.
 
 ## Debugging
 
@@ -62,9 +62,11 @@ src/
   game/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
-    entities/             Player entity
-    components/           MovementComponent, FacingComponent
-    systems/              InputSystem, CoopCamera
+    entities/             Player, Projectile
+    components/           Movement, Facing, Health, Cooldown
+    abilities/            FireballAbility
+    systems/              InputSystem, CoopCamera, ProjectileSystem
+    types/                Combat and projectile types
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
     ui/                   HUD model, player panels, boss bar, debug overlay
@@ -78,6 +80,7 @@ src/
 - `InputSystem` reads both players once per frame and exposes normalized intent to the scene.
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
+- Projectiles carry team, current owner and original source IDs. The projectile system handles spawning, lifetime and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.
 - Placeholder art is generated at runtime as textures, so there are no binary assets yet.

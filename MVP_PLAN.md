@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 3 complete. Milestone 4 next.
+**Current status:** Milestone 4 complete. Milestone 5 next.
 
 ---
 
@@ -240,7 +240,7 @@ All values live in config files, not in entities.
 | 1 | Local co-op movement, facing and input | Complete | 0 |
 | 2 | Screen-space HUD shell and co-op camera | Complete | 1 |
 | 3 | Player health, damage and downed state | Complete | 2 |
-| 4 | Projectile system, Fireball and cooldowns | Planned | 3 |
+| 4 | Projectile system, Fireball and cooldowns | Complete | 3 |
 | 5 | Grunt enemies, enemy fire and combat loop | Planned | 3, 4 |
 | 6 | Shield, directional defense and reflection | Planned | 4, 5 |
 | 7 | Encounter flow, boss and win/lose conditions | Planned | 5, 6 |
@@ -489,7 +489,22 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 4 — Projectile system, Fireball and cooldowns
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- Combat types for `Team`, projectile presets and spawn data.
+- `Projectile` entity with circular Arcade body, velocity, lifetime timer, team, owner, original source, damage and reflection metadata.
+- `ProjectileSystem` owns the projectile group, spawns, updates lifetimes, removes expired/destroyed projectiles and cleans up on shutdown.
+- Wall collisions destroy projectiles.
+- `Cooldown` component and `FireballAbility`.
+- Fireball spawns outside the owner body in the owner's facing direction.
+- Fireballs collide with walls and expire after 1.8 s.
+- Fireball cooldown is shown per player in the HUD with an independent refill bar.
+- Fireball texture generated at runtime; texture keys moved to `resources/textureKeys.ts`.
+- Debug panel shows active projectile count.
+
+**Verification:** Typecheck and production build pass. Browser-tested: P1 fires with `F`, P2 fires with Numpad `1`, projectiles follow the held facing direction, cooldown blocks rapid fire, each player's cooldown is independent, wall impact removes the projectile, lifetime expiry removes it, HUD bars refill, and no console errors.
 
 **Objective:** Add reusable projectiles and a working player Fireball with cooldown feedback, independent of enemy and shield logic.
 
