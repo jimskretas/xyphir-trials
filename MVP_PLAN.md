@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Planning complete. No gameplay work from this plan has started yet.
+**Current status:** Milestone 1 complete. Milestone 2 next.
 
 ---
 
@@ -237,7 +237,7 @@ All values live in config files, not in entities.
 | # | Milestone | Status | Depends on |
 | --- | --- | --- | --- |
 | 0 | Baseline review and MVP plan | Complete | — |
-| 1 | Local co-op movement, facing and input | Planned | 0 |
+| 1 | Local co-op movement, facing and input | Complete | 0 |
 | 2 | Screen-space HUD shell and co-op camera | Planned | 1 |
 | 3 | Player health, damage and downed state | Planned | 2 |
 | 4 | Projectile system, Fireball and cooldowns | Planned | 3 |
@@ -273,7 +273,22 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 1 — Local co-op movement, facing and input
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- Central player bindings in `config/controls.ts`, including reserved Fireball/Shield keys.
+- Two independent input states read once per frame in `InputSystem`.
+- `FacingComponent` replaces mouse aiming; facing follows the last non-zero movement direction and persists.
+- P1/P2 identity, distinct generated textures, spawn positions and inward facing.
+- Player-vs-wall and player-vs-player colliders.
+- Camera follows the players' midpoint (zoom fixed at 1 until Milestone 2).
+- Debug overlay reports both players; controls hint updated.
+- Removed the mouse crosshair cursor and the previous mouse-aim documentation.
+
+**Deviation:** The old F2 Arcade body-outline toggle was removed. Phaser 4.2.1 created and updated the debug graphic, but it did not render in WebGL in this project. The toggle was not MVP-critical, and leaving a broken advertised control was worse than removing it. Debug information is still available through the overlay and wall-contact flags.
+
+**Verification:** Typecheck and production build pass. Browser-tested: independent movement for both players, diagonal velocity of 184/184 at 260 px/s, facing persistence after stopping, top-wall collision, player separation at 36 px, midpoint camera follow, debug overlay values for both players, and no console errors.
 
 **Objective:** Two players can move independently with keyboard-only controls, keep a stable facing direction, collide with the arena and each other, and the camera at least follows their midpoint.
 

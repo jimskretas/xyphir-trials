@@ -5,10 +5,14 @@ export const COLORS = {
   arenaMark: 0x26374d,
   wall: 0x273244,
   wallEdge: 0x455a75,
-  playerGlow: 0x22d3ee,
-  player: 0x2dd4bf,
-  playerEdge: 0x0f766e,
-  playerPointer: 0xf0fdfa,
+  playerOneGlow: 0x22d3ee,
+  playerOne: 0x2dd4bf,
+  playerOneEdge: 0x0f766e,
+  playerOnePointer: 0xf0fdfa,
+  playerTwoGlow: 0xfbbf24,
+  playerTwo: 0xf59e0b,
+  playerTwoEdge: 0x92400e,
+  playerTwoPointer: 0xfffbeb,
 } as const;
 
 export const UI_COLORS = {

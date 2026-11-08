@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
 
-This repository currently contains the first playable milestone: a combat sandbox with a moving, mouse-aimed player inside a walled arena.
+This repository currently contains the local co-op movement milestone: two keyboard-controlled players inside a walled arena, with independent movement and persistent facing directions.
 
 ## Requirements
 
@@ -20,12 +20,18 @@ Open the URL printed by Vite (normally `http://localhost:5173`).
 
 ## Controls
 
+Both players share the same keyboard. No mouse is required.
+
+| Player | Movement | Fireball | Shield |
+| --- | --- | --- | --- |
+| P1 | `W` `A` `S` `D` | `F` | `G` |
+| P2 | Arrow keys | Numpad `1` | Numpad `2` |
+
 | Input | Action |
 | --- | --- |
-| `W` `A` `S` `D` | Move |
-| Mouse | Aim / face direction |
 | `` ` `` | Toggle debug overlay |
-| `F2` | Toggle Arcade Physics body outlines |
+
+Fireball and shield are not implemented yet; their keys are already registered and reserved by the central control map.
 
 ## Scripts
 
@@ -41,12 +47,12 @@ Open the URL printed by Vite (normally `http://localhost:5173`).
 ```text
 src/
   main.ts                 Game bootstrap (Phaser.Game + Vite HMR cleanup)
-  style.css               Page/canvas layout and cursor
+  style.css               Page/canvas layout
   game/
-    config/               Game config, gameplay tuning, palette
+    config/               Game config, gameplay tuning, controls, palette
     scenes/               ArenaScene: orchestration only
     entities/             Player entity
-    components/           MovementComponent, AimComponent
+    components/           MovementComponent, FacingComponent
     systems/              InputSystem
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
@@ -55,9 +61,11 @@ src/
 
 ### Architectural notes
 
-- Gameplay is composed from small components. `Player` is a thin Arcade sprite that owns a `MovementComponent` and an `AimComponent`; it does not contain input, camera or world logic.
-- `InputSystem` isolates raw keyboard/pointer access and exposes normalized intent to the scene.
+- Gameplay is composed from small components. `Player` is a thin Arcade sprite that owns a `MovementComponent` and a `FacingComponent`; it does not contain input, camera or world logic.
+- Facing follows the last non-zero movement direction and persists when the player stops.
+- All key bindings live in `config/controls.ts` so both players share one input map.
+- `InputSystem` reads both players once per frame and exposes normalized intent to the scene.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.
-- Placeholder art is generated at runtime as a texture, so there are no binary assets yet.
+- Placeholder art is generated at runtime as textures, so there are no binary assets yet.
 - The arena (1920 × 1280) is larger than the 1280 × 720 viewport so camera follow is visible.

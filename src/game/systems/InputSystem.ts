@@ -1,15 +1,25 @@
 import Phaser from 'phaser';
+import { PLAYER_CONTROLS, PLAYER_IDS } from '../config/controls';
+import type { PlayerId } from '../config/controls';
+
+export interface PlayerInputState {
+  movement: Phaser.Math.Vector2;
+  fireball: boolean;
+  shield: boolean;
+}
+
+interface PlayerKeys {
+  up: Phaser.Input.Keyboard.Key;
+  down: Phaser.Input.Keyboard.Key;
+  left: Phaser.Input.Keyboard.Key;
+  right: Phaser.Input.Keyboard.Key;
+  fireball: Phaser.Input.Keyboard.Key;
+  shield: Phaser.Input.Keyboard.Key;
+}
 
 export class InputSystem {
-  private readonly keys: {
-    up: Phaser.Input.Keyboard.Key;
-    down: Phaser.Input.Keyboard.Key;
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-  };
-
-  private readonly direction = new Phaser.Math.Vector2();
-  private readonly pointerWorld = new Phaser.Math.Vector2();
+  private readonly keys = new Map<PlayerId, PlayerKeys>();
+  private readonly states = new Map<PlayerId, PlayerInputState>();
 
   constructor(private readonly scene: Phaser.Scene) {
     const keyboard = scene.input.keyboard;
@@ -18,31 +28,52 @@ export class InputSystem {
       throw new Error('Keyboard input is not available in this environment.');
     }
 
-    this.keys = {
-      up: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      left: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    };
+    for (const id of PLAYER_IDS) {
+      const { binding } = PLAYER_CONTROLS[id];
+
+      this.keys.set(id, {
+        up: keyboard.addKey(binding.up),
+        down: keyboard.addKey(binding.down),
+        left: keyboard.addKey(binding.left),
+        right: keyboard.addKey(binding.right),
+        fireball: keyboard.addKey(binding.fireball),
+        shield: keyboard.addKey(binding.shield),
+      });
+
+      this.states.set(id, {
+        movement: new Phaser.Math.Vector2(),
+        fireball: false,
+        shield: false,
+      });
+    }
   }
 
-  getMovement(): Phaser.Math.Vector2 {
-    const x = Number(this.keys.right.isDown) - Number(this.keys.left.isDown);
-    const y = Number(this.keys.down.isDown) - Number(this.keys.up.isDown);
+  update(): void {
+    for (const id of PLAYER_IDS) {
+      const keys = this.keys.get(id);
+      const state = this.states.get(id);
 
-    return this.direction.set(x, y);
+      if (!keys || !state) {
+        continue;
+      }
+
+      state.movement.set(
+        Number(keys.right.isDown) - Number(keys.left.isDown),
+        Number(keys.down.isDown) - Number(keys.up.isDown),
+      );
+      state.fireball = Phaser.Input.Keyboard.JustDown(keys.fireball);
+      state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
+    }
   }
 
-  getPointerWorld(
-    camera: Phaser.Cameras.Scene2D.Camera,
-  ): Phaser.Math.Vector2 | null {
-    const pointer = this.scene.input.activePointer;
+  getState(id: PlayerId): PlayerInputState {
+    const state = this.states.get(id);
 
-    if (pointer.moveTime === 0) {
-      return null;
+    if (!state) {
+      throw new Error(`No input state registered for ${id}.`);
     }
 
-    return camera.getWorldPoint(pointer.x, pointer.y, this.pointerWorld);
+    return state;
   }
 
   destroy(): void {
@@ -52,8 +83,13 @@ export class InputSystem {
       return;
     }
 
-    for (const key of Object.values(this.keys)) {
-      keyboard.removeKey(key, true, true);
+    for (const keys of this.keys.values()) {
+      for (const key of Object.values(keys)) {
+        keyboard.removeKey(key, true, true);
+      }
     }
+
+    this.keys.clear();
+    this.states.clear();
   }
 }

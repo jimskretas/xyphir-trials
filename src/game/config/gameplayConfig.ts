@@ -13,7 +13,7 @@ export const ARENA = {
 export const PLAYER = {
   radius: 18,
   speed: 260,
-  turnSpeed: 18,
+  spawnSpacing: 120,
 } as const;
 
 export const CAMERA = {
