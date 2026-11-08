@@ -63,9 +63,13 @@ export class DebugOverlay {
       ].join(' ');
 
       lines.push(
-        `${player.label}  pos ${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}  face ${Math.round(player.facingDegrees)}°`,
+        `${player.label}  pos ${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}  face ${Math.round(player.facingDegrees)}°  hp ${player.health}/${player.maxHealth}${player.downed ? ' DOWN' : ''}`,
         `     vel ${player.velocity.x.toFixed(0)}, ${player.velocity.y.toFixed(0)}  in ${player.direction.x.toFixed(2)}, ${player.direction.y.toFixed(2)}  walls ${contacts}`,
       );
+    }
+
+    if (DEBUG.enabled) {
+      lines.push(`debug  H / Num 3 damage (${DEBUG.damageAmount})`);
     }
 
     lines.push(`fps  ${snapshot.fps.toFixed(0)}`);

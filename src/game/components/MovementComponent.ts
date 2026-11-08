@@ -29,4 +29,9 @@ export class MovementComponent {
       this.direction.y * this.speed,
     );
   }
+
+  stop(): void {
+    this.direction.set(0, 0);
+    this.host.body.setVelocity(0, 0);
+  }
 }

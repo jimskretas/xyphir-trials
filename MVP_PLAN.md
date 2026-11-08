@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 2 complete. Milestone 3 next.
+**Current status:** Milestone 3 complete. Milestone 4 next.
 
 ---
 
@@ -239,7 +239,7 @@ All values live in config files, not in entities.
 | 0 | Baseline review and MVP plan | Complete | — |
 | 1 | Local co-op movement, facing and input | Complete | 0 |
 | 2 | Screen-space HUD shell and co-op camera | Complete | 1 |
-| 3 | Player health, damage and downed state | Planned | 2 |
+| 3 | Player health, damage and downed state | Complete | 2 |
 | 4 | Projectile system, Fireball and cooldowns | Planned | 3 |
 | 5 | Grunt enemies, enemy fire and combat loop | Planned | 3, 4 |
 | 6 | Shield, directional defense and reflection | Planned | 4, 5 |
@@ -423,7 +423,19 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 3 — Player health, damage and downed state
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- Reusable `HealthComponent` with current/max health, damage intake, ratio, alive state and reset.
+- Configurable 700 ms player invulnerability with timer updates.
+- `Player.takeDamage()` and white damage flash; downed players are tinted, dimmed and cannot move or face.
+- `Player.update` advances health timers and stops movement when down.
+- HUD health bars and numeric health now track the component; `DOWN` state is shown.
+- Dev-only damage keys (`H` for P1, Numpad `3` for P2, 25 damage) gated by `DEBUG.enabled` and shown in the debug panel.
+- Defeat detection when every player is down; the outcome is stored in `HudModel` and the objective text updates once.
+
+**Verification:** Typecheck and production build pass. Browser-tested: 25 damage applied per hit, second hit inside 700 ms ignored, damage applied again after the window, HUD health and bars update, downed players cannot move, both players down triggers the defeat objective once, and no console errors.
 
 **Objective:** Players have persistent health, take damage with reliable invulnerability frames, can be downed, and the HUD reflects their state.
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { ARENA, PLAYER } from '../config/gameplayConfig';
+import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
+import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
 import { Player } from '../entities/Player';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
@@ -12,12 +13,19 @@ import { Arena } from '../world/Arena';
 
 const OBJECTIVE_TEXT = 'Survive the trials.';
 
+interface DebugDamageKey {
+  key: Phaser.Input.Keyboard.Key;
+  playerId: PlayerId;
+}
+
 export class ArenaScene extends Phaser.Scene {
   private arena!: Arena;
   private players: Player[] = [];
   private inputSystem!: InputSystem;
   private coopCamera!: CoopCamera;
   private hudModel!: HudModel;
+  private debugDamageKeys: DebugDamageKey[] = [];
+  private outcomeHandled = false;
 
   constructor() {
     super(SceneKeys.Arena);
@@ -26,6 +34,7 @@ export class ArenaScene extends Phaser.Scene {
   create(): void {
     createPlaceholderTextures(this);
 
+    this.outcomeHandled = false;
     this.arena = new Arena(this);
     this.players = this.createPlayers();
 
@@ -41,6 +50,7 @@ export class ArenaScene extends Phaser.Scene {
     );
 
     this.inputSystem = new InputSystem(this);
+    this.setupDebugDamageKeys();
     this.coopCamera = new CoopCamera(this, this.cameras.main, bounds);
     this.coopCamera.update(this.players);
 
@@ -59,14 +69,17 @@ export class ArenaScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
-  update(_time: number, _delta: number): void {
+  update(_time: number, delta: number): void {
     this.inputSystem.update();
 
     for (const player of this.players) {
-      player.update(this.inputSystem.getState(player.id).movement);
+      player.update(this.inputSystem.getState(player.id).movement, delta);
     }
 
+    this.handleDebugDamage();
     this.coopCamera.update(this.players);
+    this.syncHudHealth();
+    this.checkDefeat();
     this.hudModel.debug = this.createDebugSnapshot();
   }
 
@@ -86,6 +99,68 @@ export class ArenaScene extends Phaser.Scene {
     ];
   }
 
+  private setupDebugDamageKeys(): void {
+    if (!DEBUG.enabled) {
+      return;
+    }
+
+    const keyboard = this.input.keyboard;
+
+    if (!keyboard) {
+      return;
+    }
+
+    this.debugDamageKeys = [
+      {
+        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H),
+        playerId: 'p1',
+      },
+      {
+        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_THREE),
+        playerId: 'p2',
+      },
+    ];
+  }
+
+  private handleDebugDamage(): void {
+    if (!DEBUG.enabled) {
+      return;
+    }
+
+    for (const entry of this.debugDamageKeys) {
+      if (Phaser.Input.Keyboard.JustDown(entry.key)) {
+        this.players
+          .find((player) => player.id === entry.playerId)
+          ?.takeDamage(DEBUG.damageAmount);
+      }
+    }
+  }
+
+  private syncHudHealth(): void {
+    for (const player of this.players) {
+      const state = this.hudModel.players.find(
+        (candidate) => candidate.id === player.id,
+      );
+
+      if (!state) {
+        continue;
+      }
+
+      state.health = player.health.current;
+      state.downed = !player.isAlive;
+    }
+  }
+
+  private checkDefeat(): void {
+    if (this.outcomeHandled || this.players.some((player) => player.isAlive)) {
+      return;
+    }
+
+    this.outcomeHandled = true;
+    this.hudModel.outcome = 'defeat';
+    this.hudModel.objective = 'Both players have fallen.';
+  }
+
   private createDebugSnapshot(): DebugSnapshot {
     return {
       players: this.players.map((player) => ({
@@ -94,6 +169,9 @@ export class ArenaScene extends Phaser.Scene {
         velocity: player.body.velocity,
         direction: player.movementDirection,
         facingDegrees: player.facingDegrees,
+        health: player.health.current,
+        maxHealth: player.health.maxHealth,
+        downed: !player.isAlive,
         blocked: player.body.blocked,
       })),
       fps: this.game.loop.actualFps,
@@ -103,6 +181,7 @@ export class ArenaScene extends Phaser.Scene {
   private handleShutdown(): void {
     this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();
+    this.removeDebugDamageKeys();
     this.coopCamera.destroy();
     this.arena.destroy();
 
@@ -111,5 +190,15 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.players = [];
+  }
+
+  private removeDebugDamageKeys(): void {
+    const keyboard = this.input.keyboard;
+
+    for (const entry of this.debugDamageKeys) {
+      keyboard?.removeKey(entry.key, true);
+    }
+
+    this.debugDamageKeys = [];
   }
 }

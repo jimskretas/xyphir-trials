@@ -33,6 +33,17 @@ Both players share the same keyboard. No mouse is required.
 
 Fireball and shield are not implemented yet; their keys are already registered and reserved by the central control map.
 
+## Debugging
+
+In development builds the debug overlay is visible by default and `` ` `` toggles it.
+
+| Input | Action |
+| --- | --- |
+| `H` | Deal 25 test damage to P1 |
+| Numpad `3` | Deal 25 test damage to P2 |
+
+Test damage keys are compiled out of production behavior by the `DEBUG.enabled` check.
+
 ## Scripts
 
 | Command | Description |

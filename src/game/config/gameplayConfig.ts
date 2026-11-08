@@ -15,6 +15,8 @@ export const PLAYER = {
   speed: 260,
   spawnSpacing: 120,
   maxHealth: 100,
+  invulnerabilityMs: 700,
+  damageFlashMs: 120,
 } as const;
 
 export const CAMERA = {
@@ -26,4 +28,5 @@ export const CAMERA = {
 
 export const DEBUG = {
   enabled: import.meta.env.DEV,
+  damageAmount: 25,
 } as const;

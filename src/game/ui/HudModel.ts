@@ -41,6 +41,9 @@ export interface PlayerDebugSnapshot {
   velocity: DebugVector;
   direction: DebugVector;
   facingDegrees: number;
+  health: number;
+  maxHealth: number;
+  downed: boolean;
   blocked: BlockedState;
 }
 
