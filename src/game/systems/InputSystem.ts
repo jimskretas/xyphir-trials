@@ -7,6 +7,7 @@ export interface PlayerInputState {
   fireball: boolean;
   shield: boolean;
   dash: boolean;
+  autoAttackToggle: boolean;
 }
 
 interface PlayerKeys {
@@ -17,6 +18,7 @@ interface PlayerKeys {
   fireball: Phaser.Input.Keyboard.Key;
   shield: Phaser.Input.Keyboard.Key;
   dash: Phaser.Input.Keyboard.Key;
+  autoAttack: Phaser.Input.Keyboard.Key;
 }
 
 export class InputSystem {
@@ -41,6 +43,7 @@ export class InputSystem {
         fireball: keyboard.addKey(binding.fireball),
         shield: keyboard.addKey(binding.shield),
         dash: keyboard.addKey(binding.dash),
+        autoAttack: keyboard.addKey(binding.autoAttack),
       });
 
       this.states.set(id, {
@@ -48,6 +51,7 @@ export class InputSystem {
         fireball: false,
         shield: false,
         dash: false,
+        autoAttackToggle: false,
       });
     }
   }
@@ -68,6 +72,7 @@ export class InputSystem {
       state.fireball = Phaser.Input.Keyboard.JustDown(keys.fireball);
       state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
       state.dash = Phaser.Input.Keyboard.JustDown(keys.dash);
+      state.autoAttackToggle = Phaser.Input.Keyboard.JustDown(keys.autoAttack);
     }
   }
 

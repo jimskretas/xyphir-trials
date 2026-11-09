@@ -152,13 +152,16 @@ export class ArenaScene extends Phaser.Scene {
 
       player.update(input.movement, delta);
 
-      if (input.fireball) {
-        const spawn = player.tryFire();
+      if (input.autoAttackToggle && player.toggleAutoAttack()) {
+        sfx.play('toggle');
+      }
 
-        if (spawn) {
-          this.projectileSystem.spawn(spawn);
-          sfx.play('fireball');
-        }
+      if (input.fireball) {
+        this.firePlayer(player);
+      }
+
+      if (player.autoAttackEnabled) {
+        this.firePlayer(player);
       }
 
       if (input.shield && player.tryShield()) {
@@ -202,6 +205,17 @@ export class ArenaScene extends Phaser.Scene {
         Math.PI,
       ),
     ];
+  }
+
+  private firePlayer(player: Player): void {
+    const spawn = player.tryFire();
+
+    if (!spawn) {
+      return;
+    }
+
+    this.projectileSystem.spawn(spawn);
+    sfx.play('fireball');
   }
 
   private handleProjectileEnemyOverlap(
@@ -409,6 +423,7 @@ export class ArenaScene extends Phaser.Scene {
 
       state.health = player.health.current;
       state.downed = !player.isAlive;
+      state.autoAttack = player.autoAttackEnabled;
 
       if (state.fireball) {
         state.fireball.ready = player.fireball.cooldown.isReady;
@@ -527,6 +542,7 @@ export class ArenaScene extends Phaser.Scene {
         maxHealth: player.health.maxHealth,
         downed: !player.isAlive,
         dashing: player.isDashing,
+        autoAttack: player.autoAttackEnabled,
         blocked: player.body.blocked,
       })),
       enemies: this.encounterSystem.aliveCount,

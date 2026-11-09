@@ -5,7 +5,7 @@ import { VIEWPORT } from '../config/gameplayConfig';
 import type { AbilityHudState, PlayerHudState } from './HudModel';
 
 const PANEL_WIDTH = 260;
-const PANEL_HEIGHT = 104;
+const PANEL_HEIGHT = 124;
 const BAR_WIDTH = 236;
 const BAR_HEIGHT = 10;
 const ABILITY_WIDTH = 72;
@@ -17,10 +17,13 @@ export class PlayerHudPanel {
   private readonly container: Phaser.GameObjects.Container;
   private readonly bar: Phaser.GameObjects.Graphics;
   private readonly abilities: Phaser.GameObjects.Graphics;
+  private readonly autoBadge: Phaser.GameObjects.Graphics;
   private readonly healthText: Phaser.GameObjects.Text;
   private readonly fireballText: Phaser.GameObjects.Text;
   private readonly shieldText: Phaser.GameObjects.Text;
   private readonly dashText: Phaser.GameObjects.Text;
+  private readonly autoLabelText: Phaser.GameObjects.Text;
+  private readonly autoStateText: Phaser.GameObjects.Text;
   private readonly color: number;
 
   constructor(
@@ -42,6 +45,7 @@ export class PlayerHudPanel {
 
     this.bar = scene.add.graphics();
     this.abilities = scene.add.graphics();
+    this.autoBadge = scene.add.graphics();
 
     const nameText = scene.add.text(12, 8, state.label, {
       fontFamily: 'Consolas, "Courier New", monospace',
@@ -97,16 +101,39 @@ export class PlayerHudPanel {
       },
     );
 
+    this.autoLabelText = scene.add.text(
+      20,
+      101,
+      `AUTO FIRE  [${controls.autoAttackLabel}]`,
+      {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '9px',
+        color: '#6b7d92',
+      },
+    );
+
+    this.autoStateText = scene.add
+      .text(PANEL_WIDTH - 20, 101, '', {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '9px',
+        fontStyle: 'bold',
+        color: '#6b7d92',
+      })
+      .setOrigin(1, 0);
+
     this.container = scene.add
       .container(x, y, [
         background,
         this.bar,
         this.abilities,
+        this.autoBadge,
         nameText,
         this.healthText,
         this.fireballText,
         this.shieldText,
         this.dashText,
+        this.autoLabelText,
+        this.autoStateText,
         controlsText,
       ])
       .setDepth(1000);
@@ -117,6 +144,7 @@ export class PlayerHudPanel {
   update(state: PlayerHudState): void {
     this.drawHealth(state);
     this.drawAbilities(state);
+    this.drawAutoAttack(state);
   }
 
   destroy(): void {
@@ -151,6 +179,20 @@ export class PlayerHudPanel {
       state.downed ? 'DOWN' : `${Math.ceil(state.health)} / ${state.maxHealth}`,
     );
     this.healthText.setColor(state.downed ? '#ef4444' : '#d6e2ee');
+  }
+
+  private drawAutoAttack(state: PlayerHudState): void {
+    const active = state.autoAttack;
+
+    this.autoBadge.clear();
+    this.autoBadge.fillStyle(active ? 0x14532d : 0x1b2330, 1);
+    this.autoBadge.fillRoundedRect(12, 98, BAR_WIDTH, 16, 4);
+    this.autoBadge.lineStyle(1, active ? 0x4ade80 : 0x334155, 0.8);
+    this.autoBadge.strokeRoundedRect(12, 98, BAR_WIDTH, 16, 4);
+
+    this.autoLabelText.setColor(active ? '#86efac' : '#6b7d92');
+    this.autoStateText.setText(active ? 'ON' : 'OFF');
+    this.autoStateText.setColor(active ? '#4ade80' : '#6b7d92');
   }
 
   private drawAbilities(state: PlayerHudState): void {

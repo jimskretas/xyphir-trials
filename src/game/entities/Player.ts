@@ -51,6 +51,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private readonly shieldColor: number;
   private readonly shieldGraphic: Phaser.GameObjects.Graphics;
   private flashTimer: Phaser.Time.TimerEvent | null = null;
+  private autoAttack = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -178,6 +179,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   get isDashing(): boolean {
     return this.dash.isDashing;
+  }
+
+  get autoAttackEnabled(): boolean {
+    return this.autoAttack;
+  }
+
+  toggleAutoAttack(): boolean {
+    if (!this.health.isAlive) {
+      return false;
+    }
+
+    this.autoAttack = !this.autoAttack;
+    return true;
   }
 
   get movementDirection(): Phaser.Math.Vector2 {

@@ -1023,6 +1023,25 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ---
 
+## 4b. Post-MVP — Auto fire toggle
+
+**Status:** Complete
+
+**Objective:** Let each player keep firing automatically so one player can focus on movement, shields or dash timing.
+
+**Implemented:**
+
+- Per-player toggle bindings: P1 `Q`, P2 Numpad `5`, centralised in `config/controls.ts`.
+- `Player.autoAttackEnabled` with `toggleAutoAttack()`, guarded while downed.
+- `ArenaScene` fires through the existing `tryFire()` path every frame while auto fire is enabled, sharing the normal fireball cooldown with manual fire.
+- HUD panel adds an `AUTO FIRE [key]` row with an `ON`/`OFF` state that turns green while active.
+- Title-screen control cards and the debug hint list the auto-fire keys; the debug overlay shows `AUTO` for enabled players.
+- Short toggle sound and a `toggle` SFX entry.
+
+**Verification:** Typecheck and production build pass. Auto fire uses the same projectiles, cooldown and damage path as manual fire.
+
+---
+
 ## 5. Testing protocol used for every milestone
 
 1. Review the current Git status and relevant existing files.

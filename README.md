@@ -26,10 +26,10 @@ Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates
 
 Both players share the same keyboard. No mouse is required.
 
-| Player | Movement | Fireball | Shield | Dash |
-| --- | --- | --- | --- | --- |
-| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` |
-| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` |
+| Player | Movement | Fireball | Shield | Dash | Auto fire |
+| --- | --- | --- | --- | --- | --- |
+| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` | `Q` |
+| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` | Numpad `5` |
 
 | Input | Action |
 | --- | --- |
@@ -41,6 +41,8 @@ Both players share the same keyboard. No mouse is required.
 Both abilities and the dash are implemented. Facing follows the last movement direction; fireballs and shields both use that facing. Dash uses the held movement direction, or the current facing when standing still.
 
 While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Projectiles are not consumed on contact; arena walls still stop the dash.
+
+Auto fire is a per-player toggle. While it is on, that player keeps firing in their current facing direction whenever the fireball cooldown is ready, so you can concentrate on movement, shields or the other player. The HUD shows `AUTO FIRE` with an `ON`/`OFF` state for each player.
 
 ## Debugging
 
@@ -94,6 +96,7 @@ src/
 - Projectiles carry team, current owner and original source IDs. The projectile system handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
 - `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 - `DashComponent` owns dash duration, cooldown and fixed velocity. `Player` decides the dash direction and damage immunity; `ArenaScene` skips player and projectile collisions while the dash is active.
+- Auto fire is a boolean on `Player`. `ArenaScene` toggles it from the player's key and calls the same `tryFire()` path as manual fire each frame while enabled, so both share the fireball cooldown.
 - A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
 - Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
 - `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.

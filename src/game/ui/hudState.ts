@@ -10,6 +10,7 @@ export function createPlayerHudState(id: PlayerId): PlayerHudState {
     health: PLAYER.maxHealth,
     maxHealth: PLAYER.maxHealth,
     downed: false,
+    autoAttack: false,
     fireball: {
       label: 'FIREBALL',
       ready: true,

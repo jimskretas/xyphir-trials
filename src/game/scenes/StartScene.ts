@@ -9,7 +9,7 @@ import { sfx } from '../systems/SfxSystem';
 const MONO = 'Consolas, "Courier New", monospace';
 
 const CARD_WIDTH = 430;
-const CARD_HEIGHT = 214;
+const CARD_HEIGHT = 252;
 const CARD_GAP = 40;
 const CARD_Y = 210;
 
@@ -161,6 +161,7 @@ export class StartScene extends Phaser.Scene {
     this.drawControlRow(x, y + 106, 'FIREBALL', controls.fireballLabel);
     this.drawControlRow(x, y + 144, 'SHIELD', controls.shieldLabel);
     this.drawControlRow(x, y + 182, 'DASH', controls.dashLabel);
+    this.drawControlRow(x, y + 220, 'AUTO FIRE', controls.autoAttackLabel);
   }
 
   private drawControlRow(
@@ -189,7 +190,7 @@ export class StartScene extends Phaser.Scene {
     const width = 760;
     const height = 108;
     const x = (VIEWPORT.width - width) / 2;
-    const y = 448;
+    const y = 476;
 
     const panel = this.add.graphics();
     panel.fillStyle(0x0b111a, 0.94);

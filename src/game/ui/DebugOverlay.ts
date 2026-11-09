@@ -5,8 +5,8 @@ import { UI_COLORS } from '../config/theme';
 import type { DebugSnapshot } from './HudModel';
 
 const HINT_TEXT = [
-  `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}  ${PLAYER_CONTROLS.p1.abilityLabel}  ${PLAYER_CONTROLS.p1.dashLabel} dash`,
-  `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}  ${PLAYER_CONTROLS.p2.abilityLabel}  ${PLAYER_CONTROLS.p2.dashLabel} dash`,
+  `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}  ${PLAYER_CONTROLS.p1.abilityLabel}  ${PLAYER_CONTROLS.p1.dashLabel} dash  ${PLAYER_CONTROLS.p1.autoAttackLabel} auto`,
+  `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}  ${PLAYER_CONTROLS.p2.abilityLabel}  ${PLAYER_CONTROLS.p2.dashLabel} dash  ${PLAYER_CONTROLS.p2.autoAttackLabel} auto`,
   '` Debug',
 ].join('  ·  ');
 
@@ -62,8 +62,16 @@ export class DebugOverlay {
         player.blocked.down ? 'D' : '-',
       ].join(' ');
 
+      const flags = [
+        player.downed ? 'DOWN' : '',
+        player.dashing ? 'DASH' : '',
+        player.autoAttack ? 'AUTO' : '',
+      ]
+        .filter((flag) => flag.length > 0)
+        .join(' ');
+
       lines.push(
-        `${player.label}  pos ${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}  face ${Math.round(player.facingDegrees)}°  hp ${player.health}/${player.maxHealth}${player.downed ? ' DOWN' : ''}`,
+        `${player.label}  pos ${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}  face ${Math.round(player.facingDegrees)}°  hp ${player.health}/${player.maxHealth}${flags ? `  ${flags}` : ''}`,
         `     vel ${player.velocity.x.toFixed(0)}, ${player.velocity.y.toFixed(0)}  in ${player.direction.x.toFixed(2)}, ${player.direction.y.toFixed(2)}  walls ${contacts}`,
       );
     }
