@@ -6,4 +6,6 @@ export const TextureKeys = {
   BossBolt: 'projectile-boss-bolt',
   Grunt: 'enemy-grunt',
   Boss: 'enemy-boss',
+  Turret: 'skill-turret',
+  TurretBolt: 'projectile-turret-bolt',
 } as const;

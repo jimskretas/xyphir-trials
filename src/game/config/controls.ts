@@ -15,6 +15,13 @@ export interface PlayerBinding {
   autoAttack: number;
 }
 
+export interface PlayerSkillBinding {
+  id: string;
+  name: string;
+  key: number;
+  label: string;
+}
+
 export interface PlayerControls {
   label: string;
   movementLabel: string;
@@ -23,6 +30,7 @@ export interface PlayerControls {
   dashLabel: string;
   autoAttackLabel: string;
   abilityLabel: string;
+  skills: readonly PlayerSkillBinding[];
   binding: PlayerBinding;
 }
 
@@ -37,6 +45,14 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
     dashLabel: 'Space',
     autoAttackLabel: 'Q',
     abilityLabel: 'F / G',
+    skills: [
+      {
+        id: 'turret',
+        name: 'Turret',
+        key: KeyCodes.E,
+        label: 'E',
+      },
+    ],
     binding: {
       up: KeyCodes.W,
       down: KeyCodes.S,
@@ -56,6 +72,7 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
     dashLabel: 'Num 0',
     autoAttackLabel: 'Num 5',
     abilityLabel: 'Num 1 / 2',
+    skills: [],
     binding: {
       up: KeyCodes.UP,
       down: KeyCodes.DOWN,

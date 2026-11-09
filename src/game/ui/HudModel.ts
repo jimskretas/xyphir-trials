@@ -7,6 +7,14 @@ export interface AbilityHudState {
   ratio: number;
 }
 
+export interface SkillHudState {
+  label: string;
+  keyLabel: string;
+  ready: boolean;
+  active: boolean;
+  ratio: number;
+}
+
 export interface PlayerHudState {
   id: PlayerId;
   label: string;
@@ -17,6 +25,7 @@ export interface PlayerHudState {
   fireball: AbilityHudState | null;
   shield: AbilityHudState | null;
   dash: AbilityHudState | null;
+  skill: SkillHudState | null;
 }
 
 export interface BossHudState {
@@ -48,6 +57,7 @@ export interface PlayerDebugSnapshot {
   downed: boolean;
   dashing: boolean;
   autoAttack: boolean;
+  skillActive: boolean;
   blocked: BlockedState;
 }
 

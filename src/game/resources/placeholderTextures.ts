@@ -35,6 +35,8 @@ export function createPlaceholderTextures(scene: Phaser.Scene): void {
   createGruntTexture(scene);
   createBossBoltTexture(scene);
   createBossTexture(scene);
+  createTurretTexture(scene);
+  createTurretBoltTexture(scene);
 }
 
 function createPlayerTexture(
@@ -199,5 +201,61 @@ function createBossTexture(scene: Phaser.Scene): void {
   graphics.fillPath();
 
   graphics.generateTexture(TextureKeys.Boss, size, size);
+  graphics.destroy();
+}
+
+function createTurretTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TextureKeys.Turret)) {
+    return;
+  }
+
+  const radius = 13;
+  const size = radius * 2 + 24;
+  const center = size / 2;
+  const graphics = scene.make.graphics({}, false);
+
+  graphics.fillStyle(0xfbbf24, 0.16);
+  graphics.fillCircle(center, center, center - 1);
+
+  graphics.fillStyle(0x78350f, 1);
+  graphics.fillCircle(center, center, radius);
+
+  graphics.lineStyle(2, 0xfbbf24, 1);
+  graphics.strokeCircle(center, center, radius);
+
+  graphics.fillStyle(0xfef3c7, 1);
+  graphics.beginPath();
+  graphics.moveTo(center + 22, center);
+  graphics.lineTo(center + 7, center - 6);
+  graphics.lineTo(center + 7, center + 6);
+  graphics.closePath();
+  graphics.fillPath();
+
+  graphics.fillStyle(0xfbbf24, 1);
+  graphics.fillCircle(center, center, 4);
+
+  graphics.generateTexture(TextureKeys.Turret, size, size);
+  graphics.destroy();
+}
+
+function createTurretBoltTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TextureKeys.TurretBolt)) {
+    return;
+  }
+
+  const size = 16;
+  const center = size / 2;
+  const graphics = scene.make.graphics({}, false);
+
+  graphics.fillStyle(0xfbbf24, 0.24);
+  graphics.fillCircle(center, center, 7);
+
+  graphics.fillStyle(0xfbbf24, 1);
+  graphics.fillCircle(center, center, 4);
+
+  graphics.fillStyle(0xfffbeb, 1);
+  graphics.fillCircle(center, center, 2);
+
+  graphics.generateTexture(TextureKeys.TurretBolt, size, size);
   graphics.destroy();
 }

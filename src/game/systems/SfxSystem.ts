@@ -6,6 +6,7 @@ export type SfxName =
   | 'shield'
   | 'dash'
   | 'toggle'
+  | 'skill'
   | 'reflect'
   | 'playerHit'
   | 'enemyHit'
@@ -58,6 +59,10 @@ class SfxSystem {
         break;
       case 'toggle':
         this.tone(context, master, 660, 880, 0.08, 'square', 0.08);
+        break;
+      case 'skill':
+        this.tone(context, master, 240, 720, 0.18, 'triangle', 0.12);
+        this.noise(context, master, 0.08, 0.06, 2000);
         break;
       case 'reflect':
         this.tone(context, master, 1100, 1800, 0.1, 'triangle', 0.18);

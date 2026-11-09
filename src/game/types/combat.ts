@@ -17,6 +17,7 @@ export interface ProjectileSpawn {
   ownerId: string;
   sourceId: string;
   preset: ProjectilePreset;
+  damage?: number;
 }
 
 export interface ProjectileReflection {

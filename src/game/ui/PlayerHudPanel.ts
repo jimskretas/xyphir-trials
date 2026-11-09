@@ -5,7 +5,7 @@ import { VIEWPORT } from '../config/gameplayConfig';
 import type { AbilityHudState, PlayerHudState } from './HudModel';
 
 const PANEL_WIDTH = 260;
-const PANEL_HEIGHT = 124;
+const PANEL_HEIGHT = 144;
 const BAR_WIDTH = 236;
 const BAR_HEIGHT = 10;
 const ABILITY_WIDTH = 72;
@@ -18,12 +18,15 @@ export class PlayerHudPanel {
   private readonly bar: Phaser.GameObjects.Graphics;
   private readonly abilities: Phaser.GameObjects.Graphics;
   private readonly autoBadge: Phaser.GameObjects.Graphics;
+  private readonly skillBadge: Phaser.GameObjects.Graphics;
   private readonly healthText: Phaser.GameObjects.Text;
   private readonly fireballText: Phaser.GameObjects.Text;
   private readonly shieldText: Phaser.GameObjects.Text;
   private readonly dashText: Phaser.GameObjects.Text;
   private readonly autoLabelText: Phaser.GameObjects.Text;
   private readonly autoStateText: Phaser.GameObjects.Text;
+  private readonly skillLabelText: Phaser.GameObjects.Text;
+  private readonly skillStateText: Phaser.GameObjects.Text;
   private readonly color: number;
 
   constructor(
@@ -46,6 +49,7 @@ export class PlayerHudPanel {
     this.bar = scene.add.graphics();
     this.abilities = scene.add.graphics();
     this.autoBadge = scene.add.graphics();
+    this.skillBadge = scene.add.graphics();
 
     const nameText = scene.add.text(12, 8, state.label, {
       fontFamily: 'Consolas, "Courier New", monospace',
@@ -121,12 +125,28 @@ export class PlayerHudPanel {
       })
       .setOrigin(1, 0);
 
+    this.skillLabelText = scene.add.text(20, 123, '', {
+      fontFamily: 'Consolas, "Courier New", monospace',
+      fontSize: '9px',
+      color: '#6b7d92',
+    });
+
+    this.skillStateText = scene.add
+      .text(PANEL_WIDTH - 20, 123, '', {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '9px',
+        fontStyle: 'bold',
+        color: '#6b7d92',
+      })
+      .setOrigin(1, 0);
+
     this.container = scene.add
       .container(x, y, [
         background,
         this.bar,
         this.abilities,
         this.autoBadge,
+        this.skillBadge,
         nameText,
         this.healthText,
         this.fireballText,
@@ -134,6 +154,8 @@ export class PlayerHudPanel {
         this.dashText,
         this.autoLabelText,
         this.autoStateText,
+        this.skillLabelText,
+        this.skillStateText,
         controlsText,
       ])
       .setDepth(1000);
@@ -145,6 +167,7 @@ export class PlayerHudPanel {
     this.drawHealth(state);
     this.drawAbilities(state);
     this.drawAutoAttack(state);
+    this.drawSkill(state);
   }
 
   destroy(): void {
@@ -193,6 +216,61 @@ export class PlayerHudPanel {
     this.autoLabelText.setColor(active ? '#86efac' : '#6b7d92');
     this.autoStateText.setText(active ? 'ON' : 'OFF');
     this.autoStateText.setColor(active ? '#4ade80' : '#6b7d92');
+  }
+
+  private drawSkill(state: PlayerHudState): void {
+    const skill = state.skill;
+
+    this.skillBadge.clear();
+    this.skillBadge.fillStyle(0x1b2330, 1);
+    this.skillBadge.fillRoundedRect(12, 120, BAR_WIDTH, 16, 4);
+
+    if (!skill) {
+      this.skillBadge.lineStyle(1, 0x334155, 0.8);
+      this.skillBadge.strokeRoundedRect(12, 120, BAR_WIDTH, 16, 4);
+      this.skillLabelText.setText('SKILL  —');
+      this.skillLabelText.setColor('#4b5b6d');
+      this.skillStateText.setText('—');
+      this.skillStateText.setColor('#4b5b6d');
+      return;
+    }
+
+    if (skill.ratio > 0) {
+      const fillColor = skill.active
+        ? 0x0ea5e9
+        : skill.ready
+          ? 0xfbbf24
+          : 0x475569;
+
+      this.skillBadge.fillStyle(fillColor, skill.active ? 0.35 : 0.2);
+      this.skillBadge.fillRoundedRect(
+        12,
+        120,
+        Math.max(3, BAR_WIDTH * skill.ratio),
+        16,
+        4,
+      );
+    }
+
+    const edge = skill.active
+      ? 0x38bdf8
+      : skill.ready
+        ? 0xfbbf24
+        : 0x334155;
+
+    this.skillBadge.lineStyle(1, edge, 0.85);
+    this.skillBadge.strokeRoundedRect(12, 120, BAR_WIDTH, 16, 4);
+
+    this.skillLabelText.setText(`${skill.label}  [${skill.keyLabel}]`);
+    this.skillLabelText.setColor(
+      skill.active ? '#7dd3fc' : skill.ready ? '#fcd34d' : '#64748b',
+    );
+    this.skillStateText.setText(
+      skill.active ? 'ACTIVE' : skill.ready ? 'READY' : 'COOL',
+    );
+    this.skillStateText.setColor(
+      skill.active ? '#38bdf8' : skill.ready ? '#fbbf24' : '#64748b',
+    );
   }
 
   private drawAbilities(state: PlayerHudState): void {

@@ -4,6 +4,8 @@ import type { PlayerHudState } from './HudModel';
 import { PLAYER_CONTROLS } from '../config/controls';
 
 export function createPlayerHudState(id: PlayerId): PlayerHudState {
+  const skillBinding = PLAYER_CONTROLS[id].skills[0];
+
   return {
     id,
     label: PLAYER_CONTROLS[id].label,
@@ -29,5 +31,14 @@ export function createPlayerHudState(id: PlayerId): PlayerHudState {
       active: false,
       ratio: 1,
     },
+    skill: skillBinding
+      ? {
+          label: skillBinding.name.toUpperCase(),
+          keyLabel: skillBinding.label,
+          ready: true,
+          active: false,
+          ratio: 1,
+        }
+      : null,
   };
 }

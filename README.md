@@ -26,10 +26,10 @@ Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates
 
 Both players share the same keyboard. No mouse is required.
 
-| Player | Movement | Fireball | Shield | Dash | Auto fire |
-| --- | --- | --- | --- | --- | --- |
-| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` | `Q` |
-| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` | Numpad `5` |
+| Player | Movement | Fireball | Shield | Dash | Auto fire | Skill |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` | `Q` | `E` (Turret) |
+| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` | Numpad `5` | — |
 
 | Input | Action |
 | --- | --- |
@@ -43,6 +43,8 @@ Both abilities and the dash are implemented. Facing follows the last movement di
 While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Projectiles are not consumed on contact; arena walls still stop the dash.
 
 Auto fire is a per-player toggle. While it is on, that player keeps firing in their current facing direction whenever the fireball cooldown is ready, so you can concentrate on movement, shields or the other player. The HUD shows `AUTO FIRE` with an `ON`/`OFF` state for each player.
+
+P1 also has the Turret skill on `E`. It deploys a turret in front of the player that lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. Casting again while the cooldown is ready destroys the previous turret and places a new one, so P1 can only have one turret active at a time. The HUD shows the turret's `READY`/`ACTIVE`/`COOL` state and remaining duration.
 
 ## Debugging
 
@@ -73,9 +75,10 @@ src/
   game/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               StartScene (title), ArenaScene (orchestration), HudScene (screen-space UI)
-    entities/             Player, Projectile, EnemyBase, Grunt, Boss
+    entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret
     components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
+    skills/               Skill base class, modifiers and TurretSkill
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
@@ -97,6 +100,7 @@ src/
 - `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 - `DashComponent` owns dash duration, cooldown and fixed velocity. `Player` decides the dash direction and damage immunity; `ArenaScene` skips player and projectile collisions while the dash is active.
 - Auto fire is a boolean on `Player`. `ArenaScene` toggles it from the player's key and calls the same `tryFire()` path as manual fire each frame while enabled, so both share the fireball cooldown.
+- Skills are separate from `Player` and live in `ArenaScene`'s per-player skill list. `Skill` owns cooldown, cast gating and a multiplicative `SkillModifiers` record; concrete skills such as `TurretSkill` consume those modifiers when they create their entities. This keeps future buffs, elemental variants and upgraded turrets out of the player and scene code.
 - A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
 - Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
 - `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.

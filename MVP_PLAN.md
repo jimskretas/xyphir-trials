@@ -1042,6 +1042,27 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ---
 
+## 4c. Post-MVP — Turret skill (P1)
+
+**Status:** Complete
+
+**Objective:** Introduce the first skill and a reusable skill foundation for future elemental turrets and modifiers.
+
+**Implemented:**
+
+- `Skill` base class with cooldown, cast gating and a multiplicative `SkillModifiers` record (`cooldown`, `duration`, `damage`, `projectileSpeed`, `range`, `fireRate`).
+- `TurretSkillDefinition` and `TURRET_SKILL` config: 10 s duration, 5 s cooldown, 560 range, 600 ms fire interval, 8 damage, 640 projectile speed.
+- `Turret` entity: placed in front of the player, clamped inside the arena, rotates toward the nearest living enemy in range, fires at its current target, fades out in the last 2 s and expires after its duration.
+- `TurretSkill` owns at most one turret: casting again when the cooldown is ready destroys the old turret before spawning the new one.
+- P1-only skill binding on `E`; the control map supports a list of skill bindings so later players and additional skills are additive.
+- Skill projectiles use an optional per-spawn damage override, so future modifiers can change turret damage independently of the team bullet tuning.
+- HUD skill row with `READY`/`ACTIVE`/`COOL`, remaining-duration fill, key hint, plus title-card and debug-hint entries.
+- New generated turret and turret-bolt textures; `skill` deployment sound and `SKILL` debug flag.
+
+**Verification:** Typecheck and production build pass. Turret targeting, replacement, expiry and projectile damage use the existing projectile and enemy-damage paths.
+
+---
+
 ## 5. Testing protocol used for every milestone
 
 1. Review the current Git status and relevant existing files.

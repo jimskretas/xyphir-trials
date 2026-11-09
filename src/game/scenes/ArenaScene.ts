@@ -4,10 +4,13 @@ import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
+import { TURRET_SKILL } from '../config/skills';
 import { EnemyBase } from '../entities/EnemyBase';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
+import type { Skill } from '../skills/Skill';
+import { TurretSkill } from '../skills/TurretSkill';
 import { CoopCamera } from '../systems/CoopCamera';
 import { EncounterSystem } from '../systems/EncounterSystem';
 import type { EncounterPhase } from '../systems/EncounterSystem';
@@ -39,6 +42,7 @@ export class ArenaScene extends Phaser.Scene {
   private encounterSystem!: EncounterSystem;
   private coopCamera!: CoopCamera;
   private hudModel!: HudModel;
+  private playerSkills = new Map<PlayerId, Skill[]>();
   private debugDamageKeys: DebugDamageKey[] = [];
   private outcomeScheduled = false;
   private outcomeHandled = false;
@@ -59,6 +63,9 @@ export class ArenaScene extends Phaser.Scene {
     this.reflections = 0;
     this.arena = new Arena(this);
     this.players = this.createPlayers();
+    this.playerSkills = new Map<PlayerId, Skill[]>([
+      ['p1', [new TurretSkill(this, TURRET_SKILL)]],
+    ]);
 
     this.physics.add.collider(this.players, this.arena.walls);
     this.physics.add.collider(
@@ -147,6 +154,8 @@ export class ArenaScene extends Phaser.Scene {
 
     this.inputSystem.update();
 
+    const enemies = this.encounterSystem.enemies;
+
     for (const player of this.players) {
       const input = this.inputSystem.getState(player.id);
 
@@ -170,6 +179,25 @@ export class ArenaScene extends Phaser.Scene {
 
       if (input.dash && player.tryDash(input.movement)) {
         sfx.play('dash');
+      }
+
+      const skills = this.playerSkills.get(player.id);
+
+      if (!skills || this.outcomeScheduled) {
+        continue;
+      }
+
+      for (let index = 0; index < skills.length; index += 1) {
+        const skill = skills[index];
+        const shots = skill.update(delta, { enemies });
+
+        for (const shot of shots) {
+          this.projectileSystem.spawn(shot);
+        }
+
+        if (input.skillCasts[index] === true && skill.tryCast({ player })) {
+          sfx.play('skill');
+        }
       }
     }
 
@@ -445,6 +473,14 @@ export class ArenaScene extends Phaser.Scene {
           ? player.dash.activeRatio
           : player.dash.cooldown.readyRatio;
       }
+
+      const skill = this.playerSkills.get(player.id)?.[0] ?? null;
+
+      if (state.skill) {
+        state.skill.active = skill?.isActive ?? false;
+        state.skill.ready = skill?.isReady ?? false;
+        state.skill.ratio = skill?.statusRatio ?? 0;
+      }
     }
   }
 
@@ -543,6 +579,10 @@ export class ArenaScene extends Phaser.Scene {
         downed: !player.isAlive,
         dashing: player.isDashing,
         autoAttack: player.autoAttackEnabled,
+        skillActive:
+          this.playerSkills
+            .get(player.id)
+            ?.some((skill) => skill.isActive) ?? false,
         blocked: player.body.blocked,
       })),
       enemies: this.encounterSystem.aliveCount,

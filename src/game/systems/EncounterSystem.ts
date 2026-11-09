@@ -3,6 +3,7 @@ import { BOSS } from '../config/combatConfig';
 import { ARENA } from '../config/gameplayConfig';
 import { Boss } from '../entities/Boss';
 import { Grunt } from '../entities/Grunt';
+import type { EnemyBase } from '../entities/EnemyBase';
 import type { Player } from '../entities/Player';
 import { sfx } from './SfxSystem';
 import type { ProjectileSpawn } from '../types/combat';
@@ -58,6 +59,10 @@ export class EncounterSystem {
 
   get aliveCount(): number {
     return this.grunts.length;
+  }
+
+  get enemies(): readonly EnemyBase[] {
+    return this.boss ? [...this.grunts, this.boss] : this.grunts;
   }
 
   spawnOpeningWave(): void {

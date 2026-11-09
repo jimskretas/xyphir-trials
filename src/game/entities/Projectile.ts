@@ -28,7 +28,7 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     this.team = spawn.team;
     this.ownerId = spawn.ownerId;
     this.sourceId = spawn.sourceId;
-    this.damage = getBulletDamage(spawn.team);
+    this.damage = spawn.damage ?? getBulletDamage(spawn.team);
 
     scene.add.existing(this);
     scene.physics.add.existing(this);

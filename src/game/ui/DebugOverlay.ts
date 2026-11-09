@@ -4,9 +4,30 @@ import { DEBUG, VIEWPORT } from '../config/gameplayConfig';
 import { UI_COLORS } from '../config/theme';
 import type { DebugSnapshot } from './HudModel';
 
+const skillHints = (id: 'p1' | 'p2'): string =>
+  PLAYER_CONTROLS[id].skills
+    .map((skill) => `${skill.label} ${skill.name.toLowerCase()}`)
+    .join(' / ');
+
 const HINT_TEXT = [
-  `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}  ${PLAYER_CONTROLS.p1.abilityLabel}  ${PLAYER_CONTROLS.p1.dashLabel} dash  ${PLAYER_CONTROLS.p1.autoAttackLabel} auto`,
-  `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}  ${PLAYER_CONTROLS.p2.abilityLabel}  ${PLAYER_CONTROLS.p2.dashLabel} dash  ${PLAYER_CONTROLS.p2.autoAttackLabel} auto`,
+  [
+    `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}`,
+    PLAYER_CONTROLS.p1.abilityLabel,
+    `${PLAYER_CONTROLS.p1.dashLabel} dash`,
+    `${PLAYER_CONTROLS.p1.autoAttackLabel} auto`,
+    skillHints('p1'),
+  ]
+    .filter((part) => part.length > 0)
+    .join('  '),
+  [
+    `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}`,
+    PLAYER_CONTROLS.p2.abilityLabel,
+    `${PLAYER_CONTROLS.p2.dashLabel} dash`,
+    `${PLAYER_CONTROLS.p2.autoAttackLabel} auto`,
+    skillHints('p2'),
+  ]
+    .filter((part) => part.length > 0)
+    .join('  '),
   '` Debug',
 ].join('  ·  ');
 
@@ -66,6 +87,7 @@ export class DebugOverlay {
         player.downed ? 'DOWN' : '',
         player.dashing ? 'DASH' : '',
         player.autoAttack ? 'AUTO' : '',
+        player.skillActive ? 'SKILL' : '',
       ]
         .filter((flag) => flag.length > 0)
         .join(' ');

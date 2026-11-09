@@ -9,7 +9,7 @@ import { sfx } from '../systems/SfxSystem';
 const MONO = 'Consolas, "Courier New", monospace';
 
 const CARD_WIDTH = 430;
-const CARD_HEIGHT = 252;
+const CARD_HEIGHT = 290;
 const CARD_GAP = 40;
 const CARD_Y = 210;
 
@@ -71,7 +71,7 @@ export class StartScene extends Phaser.Scene {
     this.drawReflectionCallout();
 
     this.add
-      .text(VIEWPORT.width / 2, 602, 'PRESS ENTER OR SPACE TO BEGIN', {
+      .text(VIEWPORT.width / 2, 640, 'PRESS ENTER OR SPACE TO BEGIN', {
         fontFamily: MONO,
         fontSize: '21px',
         fontStyle: 'bold',
@@ -80,7 +80,7 @@ export class StartScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.add
-      .text(VIEWPORT.width / 2, 646, 'Keyboard only · No mouse required', {
+      .text(VIEWPORT.width / 2, 684, 'Keyboard only · No mouse required', {
         fontFamily: MONO,
         fontSize: '13px',
         color: UI_COLORS.startMuted,
@@ -162,6 +162,15 @@ export class StartScene extends Phaser.Scene {
     this.drawControlRow(x, y + 144, 'SHIELD', controls.shieldLabel);
     this.drawControlRow(x, y + 182, 'DASH', controls.dashLabel);
     this.drawControlRow(x, y + 220, 'AUTO FIRE', controls.autoAttackLabel);
+
+    const skill = controls.skills[0];
+
+    this.drawControlRow(
+      x,
+      y + 258,
+      skill ? skill.name.toUpperCase() : 'SKILL',
+      skill?.label ?? '—',
+    );
   }
 
   private drawControlRow(
@@ -190,7 +199,7 @@ export class StartScene extends Phaser.Scene {
     const width = 760;
     const height = 108;
     const x = (VIEWPORT.width - width) / 2;
-    const y = 476;
+    const y = 514;
 
     const panel = this.add.graphics();
     panel.fillStyle(0x0b111a, 0.94);

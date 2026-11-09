@@ -8,6 +8,7 @@ export interface PlayerInputState {
   shield: boolean;
   dash: boolean;
   autoAttackToggle: boolean;
+  skillCasts: boolean[];
 }
 
 interface PlayerKeys {
@@ -19,6 +20,7 @@ interface PlayerKeys {
   shield: Phaser.Input.Keyboard.Key;
   dash: Phaser.Input.Keyboard.Key;
   autoAttack: Phaser.Input.Keyboard.Key;
+  skills: Phaser.Input.Keyboard.Key[];
 }
 
 export class InputSystem {
@@ -44,6 +46,9 @@ export class InputSystem {
         shield: keyboard.addKey(binding.shield),
         dash: keyboard.addKey(binding.dash),
         autoAttack: keyboard.addKey(binding.autoAttack),
+        skills: PLAYER_CONTROLS[id].skills.map((skill) =>
+          keyboard.addKey(skill.key),
+        ),
       });
 
       this.states.set(id, {
@@ -52,6 +57,7 @@ export class InputSystem {
         shield: false,
         dash: false,
         autoAttackToggle: false,
+        skillCasts: [],
       });
     }
   }
@@ -73,6 +79,13 @@ export class InputSystem {
       state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
       state.dash = Phaser.Input.Keyboard.JustDown(keys.dash);
       state.autoAttackToggle = Phaser.Input.Keyboard.JustDown(keys.autoAttack);
+      state.skillCasts.length = keys.skills.length;
+
+      for (let index = 0; index < keys.skills.length; index += 1) {
+        state.skillCasts[index] = Phaser.Input.Keyboard.JustDown(
+          keys.skills[index],
+        );
+      }
     }
   }
 
@@ -94,7 +107,17 @@ export class InputSystem {
     }
 
     for (const keys of this.keys.values()) {
-      for (const key of Object.values(keys)) {
+      for (const key of [
+        keys.up,
+        keys.down,
+        keys.left,
+        keys.right,
+        keys.fireball,
+        keys.shield,
+        keys.dash,
+        keys.autoAttack,
+        ...keys.skills,
+      ]) {
         keyboard.removeKey(key, true, true);
       }
     }
