@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Projectile } from '../entities/Projectile';
-import type { ProjectileSpawn } from '../types/combat';
+import type { ProjectileSpawn, Team } from '../types/combat';
 
 export class ProjectileSystem {
   readonly group: Phaser.GameObjects.Group;
@@ -50,6 +50,14 @@ export class ProjectileSystem {
     }
 
     this.live.clear();
+  }
+
+  clearTeam(team: Team): void {
+    for (const projectile of [...this.live]) {
+      if (projectile.team === team) {
+        this.remove(projectile);
+      }
+    }
   }
 
   get count(): number {

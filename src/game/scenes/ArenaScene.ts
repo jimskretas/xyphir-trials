@@ -13,6 +13,7 @@ import { EncounterSystem } from '../systems/EncounterSystem';
 import type { EncounterPhase } from '../systems/EncounterSystem';
 import { InputSystem } from '../systems/InputSystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
+import { sfx } from '../systems/SfxSystem';
 import { createPlayerHudState } from '../ui/hudState';
 import type { DebugSnapshot, HudModel, Outcome } from '../ui/HudModel';
 import { Arena } from '../world/Arena';
@@ -108,6 +109,7 @@ export class ArenaScene extends Phaser.Scene {
 
     this.inputSystem = new InputSystem(this);
     this.setupDebugDamageKeys();
+    this.setupResultInput();
     this.coopCamera = new CoopCamera(this, this.cameras.main, bounds);
     this.coopCamera.update(this.players);
 
@@ -143,11 +145,12 @@ export class ArenaScene extends Phaser.Scene {
 
         if (spawn) {
           this.projectileSystem.spawn(spawn);
+          sfx.play('fireball');
         }
       }
 
-      if (input.shield) {
-        player.tryShield();
+      if (input.shield && player.tryShield()) {
+        sfx.play('shield');
       }
     }
 
@@ -203,6 +206,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     enemy.takeDamage(projectile.damage);
+    sfx.play(enemy.isAlive ? 'enemyHit' : 'enemyDeath');
     this.projectileSystem.remove(projectile);
   }
 
@@ -229,7 +233,10 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    player.takeDamage(projectile.damage);
+    if (player.takeDamage(projectile.damage)) {
+      sfx.play('playerHit');
+    }
+
     this.projectileSystem.remove(projectile);
   }
 
@@ -272,6 +279,7 @@ export class ArenaScene extends Phaser.Scene {
 
     player.flashShield();
     this.reflections += 1;
+    sfx.play('reflect');
     this.cameras.main.shake(90, 0.004);
     return true;
   }
@@ -313,7 +321,6 @@ export class ArenaScene extends Phaser.Scene {
     if (!DEBUG.enabled) {
       return;
     }
-
     const keyboard = this.input.keyboard;
 
     if (!keyboard) {
@@ -339,9 +346,13 @@ export class ArenaScene extends Phaser.Scene {
 
     for (const entry of this.debugDamageKeys) {
       if (Phaser.Input.Keyboard.JustDown(entry.key)) {
-        this.players
-          .find((player) => player.id === entry.playerId)
-          ?.takeDamage(DEBUG.damageAmount);
+        const player = this.players.find(
+          (candidate) => candidate.id === entry.playerId,
+        );
+
+        if (player?.takeDamage(DEBUG.damageAmount)) {
+          sfx.play('playerHit');
+        }
       }
     }
   }
@@ -444,12 +455,15 @@ export class ArenaScene extends Phaser.Scene {
         ? `The ${BOSS.name} has fallen.`
         : 'Both players have fallen.';
 
+    this.projectileSystem.clearTeam('enemies');
+
     this.outcomeTimer?.remove();
     this.outcomeTimer = this.time.delayedCall(OUTCOME_DELAY_MS, () => {
       this.outcomeTimer = null;
       this.outcomeHandled = true;
       this.hudModel.outcome = outcome;
       this.physics.pause();
+      sfx.play(outcome);
     });
   }
 
@@ -473,6 +487,36 @@ export class ArenaScene extends Phaser.Scene {
     };
   }
 
+  private setupResultInput(): void {
+    const keyboard = this.input.keyboard;
+
+    keyboard?.on('keydown-R', this.handleRestartInput, this);
+    keyboard?.on('keydown-ESC', this.handleTitleInput, this);
+  }
+
+  private handleRestartInput(): void {
+    if (!this.outcomeHandled) {
+      return;
+    }
+
+    this.scene.restart();
+  }
+
+  private handleTitleInput(): void {
+    if (!this.outcomeHandled) {
+      return;
+    }
+
+    this.scene.start(SceneKeys.Start);
+  }
+
+  private removeResultInput(): void {
+    const keyboard = this.input.keyboard;
+
+    keyboard?.off('keydown-R', this.handleRestartInput, this);
+    keyboard?.off('keydown-ESC', this.handleTitleInput, this);
+  }
+
   private handleShutdown(): void {
     this.outcomeTimer?.remove();
     this.outcomeTimer = null;
@@ -481,6 +525,7 @@ export class ArenaScene extends Phaser.Scene {
     this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();
     this.removeDebugDamageKeys();
+    this.removeResultInput();
     this.encounterSystem.destroyAll();
     this.projectileSystem.destroyAll();
     this.coopCamera.destroy();

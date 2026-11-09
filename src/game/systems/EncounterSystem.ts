@@ -4,6 +4,7 @@ import { ARENA } from '../config/gameplayConfig';
 import { Boss } from '../entities/Boss';
 import { Grunt } from '../entities/Grunt';
 import type { Player } from '../entities/Player';
+import { sfx } from './SfxSystem';
 import type { ProjectileSpawn } from '../types/combat';
 
 export type EncounterPhase =
@@ -195,6 +196,7 @@ export class EncounterSystem {
     this.bossSpawned = true;
     this.group.add(this.boss);
     this.currentPhase = 'boss';
+    sfx.play('bossSpawn');
     this.scene.cameras.main.shake(250, 0.006);
   }
 

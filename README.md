@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
 
-This repository currently contains the full single-run co-op encounter: two keyboard-controlled players fight a grunt wave before the Xyphir Warden boss, using fireballs and directional shields to survive and reflect projectiles.
+This repository currently contains the complete local co-op MVP: a title screen leads into a run where two keyboard-controlled players fight a grunt wave before the Xyphir Warden boss, using fireballs and directional shields to survive and reflect projectiles. Victory, defeat, restart and return-to-title are all in place.
 
 ## Requirements
 
@@ -29,6 +29,9 @@ Both players share the same keyboard. No mouse is required.
 
 | Input | Action |
 | --- | --- |
+| `Enter` / `Space` | Start the run from the title screen |
+| `R` | Restart after victory or defeat |
+| `Esc` | Return to the title after victory or defeat |
 | `` ` `` | Toggle debug overlay |
 
 Both abilities are implemented. Facing follows the last movement direction; fireballs and shields both use that facing.
@@ -61,7 +64,7 @@ src/
   style.css               Page/canvas layout
   game/
     config/               Game config, gameplay tuning, controls, scene keys, palette
-    scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
+    scenes/               StartScene (title), ArenaScene (orchestration), HudScene (screen-space UI)
     entities/             Player, Projectile, EnemyBase, Grunt, Boss
     components/           Movement, Facing, Health, Cooldown, Shield
     abilities/            FireballAbility
@@ -74,6 +77,8 @@ src/
 
 ### Architectural notes
 
+- `StartScene` is the boot scene. It explains the controls and starts `ArenaScene`; the arena launches `HudScene` in parallel and stops it on shutdown.
+- Result input lives in `ArenaScene`: `R` restarts the scene and `Esc` returns to `StartScene`, so normal scene shutdown does all gameplay cleanup.
 - Gameplay is composed from small components. `Player` is a thin Arcade sprite that owns a `MovementComponent` and a `FacingComponent`; it does not contain input, camera or world logic.
 - Facing follows the last non-zero movement direction and persists when the player stops.
 - All key bindings live in `config/controls.ts` so both players share one input map.

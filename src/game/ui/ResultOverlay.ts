@@ -4,7 +4,7 @@ import { COLORS, UI_COLORS } from '../config/theme';
 import type { Outcome } from './HudModel';
 
 const PANEL_WIDTH = 540;
-const PANEL_HEIGHT = 190;
+const PANEL_HEIGHT = 230;
 
 interface OutcomePresentation {
   title: string;
@@ -33,6 +33,7 @@ export class ResultOverlay {
   private readonly panel: Phaser.GameObjects.Graphics;
   private readonly titleText: Phaser.GameObjects.Text;
   private readonly subtitleText: Phaser.GameObjects.Text;
+  private readonly hintText: Phaser.GameObjects.Text;
 
   private current: Outcome | null = null;
 
@@ -44,7 +45,7 @@ export class ResultOverlay {
     this.panel = scene.add.graphics();
 
     this.titleText = scene.add
-      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 - 26, '', {
+      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 - 46, '', {
         fontFamily: 'Consolas, "Courier New", monospace',
         fontSize: '48px',
         fontStyle: 'bold',
@@ -53,7 +54,7 @@ export class ResultOverlay {
       .setOrigin(0.5);
 
     this.subtitleText = scene.add
-      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 + 34, '', {
+      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 + 8, '', {
         fontFamily: 'Consolas, "Courier New", monospace',
         fontSize: '16px',
         color: UI_COLORS.resultSubtitle,
@@ -62,12 +63,27 @@ export class ResultOverlay {
       })
       .setOrigin(0.5);
 
+    this.hintText = scene.add
+      .text(
+        VIEWPORT.width / 2,
+        VIEWPORT.height / 2 + 74,
+        'R  RESTART          ESC  TITLE',
+        {
+          fontFamily: 'Consolas, "Courier New", monospace',
+          fontSize: '15px',
+          fontStyle: 'bold',
+          color: UI_COLORS.startMuted,
+        },
+      )
+      .setOrigin(0.5);
+
     this.container = scene.add
       .container(0, 0, [
         shade,
         this.panel,
         this.titleText,
         this.subtitleText,
+        this.hintText,
       ])
       .setDepth(2000)
       .setVisible(false);
@@ -95,6 +111,14 @@ export class ResultOverlay {
     this.subtitleText.setText(presentation.subtitle);
     this.drawPanel(presentation.edge);
     this.container.setVisible(true);
+
+    this.titleText.setScale(0.86);
+    this.titleText.scene.tweens.add({
+      targets: this.titleText,
+      scale: 1,
+      duration: 220,
+      ease: 'Back.Out',
+    });
   }
 
   destroy(): void {

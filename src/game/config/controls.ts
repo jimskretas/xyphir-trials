@@ -16,6 +16,8 @@ export interface PlayerBinding {
 export interface PlayerControls {
   label: string;
   movementLabel: string;
+  fireballLabel: string;
+  shieldLabel: string;
   abilityLabel: string;
   binding: PlayerBinding;
 }
@@ -26,6 +28,8 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
   p1: {
     label: 'P1',
     movementLabel: 'WASD',
+    fireballLabel: 'F',
+    shieldLabel: 'G',
     abilityLabel: 'F / G',
     binding: {
       up: KeyCodes.W,
@@ -39,6 +43,8 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
   p2: {
     label: 'P2',
     movementLabel: 'Arrows',
+    fireballLabel: 'Num 1',
+    shieldLabel: 'Num 2',
     abilityLabel: 'Num 1 / 2',
     binding: {
       up: KeyCodes.UP,

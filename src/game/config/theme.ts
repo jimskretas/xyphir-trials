@@ -24,6 +24,11 @@ export const UI_COLORS = {
   resultVictory: '#67e8f9',
   resultDefeat: '#f87171',
   resultSubtitle: '#cbd8e6',
+  startTitle: '#67e8f9',
+  startSubtitle: '#cbd8e6',
+  startBody: '#a9bfd4',
+  startMuted: '#5f7288',
+  startAccent: '#fbbf24',
 } as const;
 
 export function toCssColor(color: number): string {

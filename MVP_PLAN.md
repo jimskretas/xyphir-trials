@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 7 complete. Milestone 8 next.
+**Current status:** Milestone 8 complete. Milestone 9 next.
 
 ---
 
@@ -244,7 +244,7 @@ All values live in config files, not in entities.
 | 5 | Grunt enemies, enemy fire and combat loop | Complete | 3, 4 |
 | 6 | Shield, directional defense and reflection | Complete | 4, 5 |
 | 7 | Encounter flow, boss and win/lose conditions | Complete | 5, 6 |
-| 8 | Start screen, instructions, restart and result flow | Planned | 7 |
+| 8 | Start screen, instructions, restart and result flow | Complete | 7 |
 | 9 | Audio, visual polish, balance and final QA | Planned | 8 |
 
 After each milestone: run typecheck, run the production build, manually test the milestone, update this document, review the diff, and commit.
@@ -836,7 +836,19 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 8 — Start screen, instructions, restart and result flow
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `StartScene` with the title, objective, one control card per player, and a co-op reflection explanation.
+- Enter or Space starts the run; the scene order is now `StartScene` → `ArenaScene` with `HudScene` launched in parallel.
+- Result overlay shows VICTORY or DEFEAT, a short reason, `R` restart and `Esc` return to title.
+- Restart recreates the arena through the normal scene lifecycle, so players, health, cooldowns, facing, enemies, boss, projectiles, HUD and timers are rebuilt from scratch.
+- Returning to the title stops the HUD and arena cleanly.
+- Arena shutdown removes result and debug key listeners, removes the pending outcome timer, and resumes physics for the next run.
+- In-game controls hint now includes both players' ability keys.
+
+**Verification:** Typecheck and production build pass. Start/restart/title scene transitions were reviewed for listener and HUD cleanup; no browser play-test was run for this milestone per project instruction.
 
 **Objective:** Make the game understandable and replayable from a clean title screen through victory/defeat and restart.
 
