@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 8 complete. Milestone 9 next.
+**Current status:** Milestone 9 complete. MVP complete.
 
 ---
 
@@ -245,7 +245,7 @@ All values live in config files, not in entities.
 | 6 | Shield, directional defense and reflection | Complete | 4, 5 |
 | 7 | Encounter flow, boss and win/lose conditions | Complete | 5, 6 |
 | 8 | Start screen, instructions, restart and result flow | Complete | 7 |
-| 9 | Audio, visual polish, balance and final QA | Planned | 8 |
+| 9 | Audio, visual polish, balance and final QA | Complete | 8 |
 
 After each milestone: run typecheck, run the production build, manually test the milestone, update this document, review the diff, and commit.
 
@@ -910,7 +910,19 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 9 — Audio, visual polish, balance and final QA
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `SfxSystem` with generated Web Audio effects and no binary assets or new dependencies: start, fireball, shield, reflection, player hit, enemy hit, enemy death, boss spawn, victory and defeat.
+- Audio is created and resumed only from the Enter/Space gesture in `StartScene`; all effects are no-ops until the context is running.
+- Sound hooks for casting, shield activation, reflection, enemy damage/death, player damage, boss arrival and outcomes.
+- Result title pop animation and enemy-projectile cleanup when an outcome is scheduled, preventing post-result damage.
+- Encounter updates stop as soon as an outcome is scheduled, so a defeat delay cannot advance into a boss spawn.
+- Existing polish retained: shield arc and reflection flash, active/ready/cooling ability colours, boss telegraph pulse, downed player state, camera shake and boss health bar.
+- README updated with the title/restart controls, objective and final architecture notes.
+
+**Verification:** Typecheck and production build pass. Edge-case review covered simultaneous player deaths, boss/player deaths in the same frame, shield-plus-enemy overlaps, reflected-projectile cleanup, restart with live projectiles, repeated scene restarts, outcome freeze and maximum projectile counts. Browser re-testing was not run for this milestone per project instruction; the user had already validated the current build.
 
 **Objective:** Make the finished MVP clear, responsive and stable without changing the core architecture.
 

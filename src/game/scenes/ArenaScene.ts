@@ -154,7 +154,9 @@ export class ArenaScene extends Phaser.Scene {
       }
     }
 
-    const enemyShots = this.encounterSystem.update(delta, this.players);
+    const enemyShots = this.outcomeScheduled
+      ? []
+      : this.encounterSystem.update(delta, this.players);
 
     for (const shot of enemyShots) {
       this.projectileSystem.spawn(shot);

@@ -16,7 +16,11 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (normally `http://localhost:5173`).
+Open the URL printed by Vite (normally `http://localhost:5173`). Press `Enter` or `Space` on the title screen to begin.
+
+## Objective
+
+Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates an aimed three-bolt burst with a radial nova and becomes more aggressive below half health. Survive with both players to win; the run ends in defeat when both players are down.
 
 ## Controls
 
@@ -68,7 +72,7 @@ src/
     entities/             Player, Projectile, EnemyBase, Grunt, Boss
     components/           Movement, Facing, Health, Cooldown, Shield
     abilities/            FireballAbility
-    systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem
+    systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
@@ -90,6 +94,7 @@ src/
 - A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
 - Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
 - `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.
+- `SfxSystem` synthesises all sound effects with Web Audio oscillators and noise. The audio context is created and resumed only when the player starts a run, satisfying browser autoplay rules.
 - Projectile damage rules live in the scene: player-team projectiles hit enemies, enemy-team projectiles hit players, and same-team hits are ignored.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.

@@ -101,7 +101,10 @@ export class StartScene extends Phaser.Scene {
     }
 
     this.started = true;
-    void sfx.unlock().then(() => sfx.play('start'));
+    void sfx
+      .unlock()
+      .then(() => sfx.play('start'))
+      .catch(() => undefined);
     this.scene.start(SceneKeys.Arena);
   }
 
