@@ -4,7 +4,7 @@ This document is the source of truth for the MVP. Each milestone is implemented 
 
 **Last updated:** 2026-11-08
 
-**Current status:** Milestone 6 complete. Milestone 7 next.
+**Current status:** Milestone 7 complete. Milestone 8 next.
 
 ---
 
@@ -243,7 +243,7 @@ All values live in config files, not in entities.
 | 4 | Projectile system, Fireball and cooldowns | Complete | 3 |
 | 5 | Grunt enemies, enemy fire and combat loop | Complete | 3, 4 |
 | 6 | Shield, directional defense and reflection | Complete | 4, 5 |
-| 7 | Encounter flow, boss and win/lose conditions | Planned | 5, 6 |
+| 7 | Encounter flow, boss and win/lose conditions | Complete | 5, 6 |
 | 8 | Start screen, instructions, restart and result flow | Planned | 7 |
 | 9 | Audio, visual polish, balance and final QA | Planned | 8 |
 
@@ -747,7 +747,24 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ### Milestone 7 — Encounter flow, boss and win/lose conditions
 
-**Status:** Planned
+**Status:** Complete
+
+**Implemented:**
+
+- `EncounterSystem` phase machine: `grunts` → `bossTelegraph` → `boss` → `cleared`.
+- A 1600 ms boss spawn telegraph with a growing arena marker, camera shake on spawn, and no further spawning once the boss is active.
+- `Boss` (Xyphir Warden): 480 HP, slow repositioning, alternating aimed three-bolt burst and 16-bolt radial nova, a readable pre-attack telegraph, and faster intervals below 50% health.
+- Boss and boss-bolt placeholder textures, boss projectile preset and boss health bar synced through `HudModel`.
+- Phase-driven objective text for the grunt wave, boss arrival, boss fight and cleared state.
+- Centralised outcome handling with a 900 ms delay: victory when the boss dies, defeat when both players are down, no repeat triggers.
+- Simulation freeze after the outcome delay: input/actions stop, Arcade physics pauses, and physics resumes on scene shutdown.
+- `ResultOverlay` victory/defeat panel in `HudScene`, shown above the HUD.
+- Team-based bullet damage tuning with an optional debug damage panel (`combatTuning`, `DamageDebugPanel`) gated by `DEBUG.enabled`.
+- Separate ally-reflect and enemy-reflect damage/scale multipliers.
+
+**Deviation:** Projectile time-based lifetime was removed; projectiles now persist until they hit a wall or an entity. Damage is resolved from the per-team tuning values rather than the projectile preset, so the debug panel can retune player and enemy bullet damage live.
+
+**Verification:** Typecheck and production build pass. Manual browser play-testing confirmed the grunt-to-boss transition, spawn telegraph and boss bar, both boss patterns, shield reflection of boss bolts, single victory/defeat presentation, frozen post-outcome state, and no console errors.
 
 **Objective:** Turn the combat sandbox into a complete encounter with a boss, two attack patterns, a boss health bar and clear outcomes.
 

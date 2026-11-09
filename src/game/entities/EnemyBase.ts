@@ -41,11 +41,11 @@ export abstract class EnemyBase extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(8);
   }
 
-  update(deltaMs: number, players: readonly Player[]): ProjectileSpawn | null {
+  update(deltaMs: number, players: readonly Player[]): ProjectileSpawn[] {
     this.health.update(deltaMs);
 
     if (!this.health.isAlive) {
-      return null;
+      return [];
     }
 
     const target = this.findNearestPlayer(players);
@@ -86,7 +86,7 @@ export abstract class EnemyBase extends Phaser.Physics.Arcade.Sprite {
   protected abstract updateBehavior(
     deltaMs: number,
     target: Player | null,
-  ): ProjectileSpawn | null;
+  ): ProjectileSpawn[];
 
   protected stopMoving(): void {
     this.setVelocity(0, 0);

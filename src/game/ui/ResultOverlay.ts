@@ -1,0 +1,115 @@
+import Phaser from 'phaser';
+import { VIEWPORT } from '../config/gameplayConfig';
+import { COLORS, UI_COLORS } from '../config/theme';
+import type { Outcome } from './HudModel';
+
+const PANEL_WIDTH = 540;
+const PANEL_HEIGHT = 190;
+
+interface OutcomePresentation {
+  title: string;
+  subtitle: string;
+  color: string;
+  edge: number;
+}
+
+const PRESENTATIONS: Record<Outcome, OutcomePresentation> = {
+  victory: {
+    title: 'VICTORY',
+    subtitle: 'The Xyphir Warden has fallen. The trials are complete.',
+    color: UI_COLORS.resultVictory,
+    edge: COLORS.playerOneGlow,
+  },
+  defeat: {
+    title: 'DEFEAT',
+    subtitle: 'Both players have fallen. The trials endure.',
+    color: UI_COLORS.resultDefeat,
+    edge: 0xf87171,
+  },
+};
+
+export class ResultOverlay {
+  private readonly container: Phaser.GameObjects.Container;
+  private readonly panel: Phaser.GameObjects.Graphics;
+  private readonly titleText: Phaser.GameObjects.Text;
+  private readonly subtitleText: Phaser.GameObjects.Text;
+
+  private current: Outcome | null = null;
+
+  constructor(scene: Phaser.Scene) {
+    const shade = scene.add
+      .rectangle(0, 0, VIEWPORT.width, VIEWPORT.height, 0x02040a, 0.62)
+      .setOrigin(0);
+
+    this.panel = scene.add.graphics();
+
+    this.titleText = scene.add
+      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 - 26, '', {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '48px',
+        fontStyle: 'bold',
+        color: UI_COLORS.resultVictory,
+      })
+      .setOrigin(0.5);
+
+    this.subtitleText = scene.add
+      .text(VIEWPORT.width / 2, VIEWPORT.height / 2 + 34, '', {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '16px',
+        color: UI_COLORS.resultSubtitle,
+        align: 'center',
+        wordWrap: { width: PANEL_WIDTH - 64 },
+      })
+      .setOrigin(0.5);
+
+    this.container = scene.add
+      .container(0, 0, [
+        shade,
+        this.panel,
+        this.titleText,
+        this.subtitleText,
+      ])
+      .setDepth(2000)
+      .setVisible(false);
+  }
+
+  update(outcome: Outcome | null): void {
+    if (outcome === null) {
+      if (this.current !== null) {
+        this.current = null;
+        this.container.setVisible(false);
+      }
+
+      return;
+    }
+
+    if (outcome === this.current) {
+      return;
+    }
+
+    this.current = outcome;
+
+    const presentation = PRESENTATIONS[outcome];
+
+    this.titleText.setText(presentation.title).setColor(presentation.color);
+    this.subtitleText.setText(presentation.subtitle);
+    this.drawPanel(presentation.edge);
+    this.container.setVisible(true);
+  }
+
+  destroy(): void {
+    this.container.destroy(true);
+  }
+
+  private drawPanel(edge: number): void {
+    const x = (VIEWPORT.width - PANEL_WIDTH) / 2;
+    const y = (VIEWPORT.height - PANEL_HEIGHT) / 2;
+
+    this.panel.clear();
+    this.panel.fillStyle(0x070b12, 0.96);
+    this.panel.fillRoundedRect(x, y, PANEL_WIDTH, PANEL_HEIGHT, 12);
+
+    this.panel.lineStyle(2, edge, 0.9);
+    this.panel.strokeRoundedRect(x, y, PANEL_WIDTH, PANEL_HEIGHT, 12);
+  }
+}

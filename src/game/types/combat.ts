@@ -4,10 +4,8 @@ export interface ProjectilePreset {
   texture: string;
   speed: number;
   damage: number;
-  lifetimeMs: number;
   radius: number;
   reflectable: boolean;
-  reflectDamageMultiplier: number;
   tint?: number;
 }
 

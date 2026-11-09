@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
 
-This repository currently contains the local co-op combat loop: two keyboard-controlled players inside a walled arena, fighting an opening wave of grunts with fireballs, while a co-op camera and screen-space HUD keep the action readable.
+This repository currently contains the full single-run co-op encounter: two keyboard-controlled players fight a grunt wave before the Xyphir Warden boss, using fireballs and directional shields to survive and reflect projectiles.
 
 ## Requirements
 
@@ -62,14 +62,14 @@ src/
   game/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               ArenaScene (orchestration), HudScene (screen-space UI)
-    entities/             Player, Projectile, EnemyBase, Grunt
+    entities/             Player, Projectile, EnemyBase, Grunt, Boss
     components/           Movement, Facing, Health, Cooldown, Shield
     abilities/            FireballAbility
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
     resources/            Generated placeholder textures
-    ui/                   HUD model, player panels, boss bar, debug overlay
+    ui/                   HUD model, panels, boss bar, result overlay, debug tools
 ```
 
 ### Architectural notes
@@ -80,10 +80,11 @@ src/
 - `InputSystem` reads both players once per frame and exposes normalized intent to the scene.
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
-- Projectiles carry team, current owner and original source IDs. The projectile system handles spawning, lifetime and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
+- Projectiles carry team, current owner and original source IDs. The projectile system handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
 - `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
-- A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, gains the reflection damage multiplier, and is repositioned outside the reflector with a short reflection lock.
-- Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` supplies only its AI behaviour.
+- A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
+- Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
+- `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.
 - Projectile damage rules live in the scene: player-team projectiles hit enemies, enemy-team projectiles hit players, and same-team hits are ignored.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
 - `ArenaScene` only wires the pieces together and updates them in order.

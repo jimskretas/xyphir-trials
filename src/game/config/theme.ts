@@ -21,6 +21,9 @@ export const UI_COLORS = {
   hintText: '#5f7288',
   objectiveText: '#cbd8e6',
   debugBackground: 'rgba(8, 11, 17, 0.85)',
+  resultVictory: '#67e8f9',
+  resultDefeat: '#f87171',
+  resultSubtitle: '#cbd8e6',
 } as const;
 
 export function toCssColor(color: number): string {

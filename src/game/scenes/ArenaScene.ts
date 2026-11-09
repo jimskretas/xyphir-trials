@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SHIELD } from '../config/combatConfig';
+import { BOSS, SHIELD } from '../config/combatConfig';
 import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
@@ -10,11 +10,14 @@ import { Projectile } from '../entities/Projectile';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import { CoopCamera } from '../systems/CoopCamera';
 import { EncounterSystem } from '../systems/EncounterSystem';
+import type { EncounterPhase } from '../systems/EncounterSystem';
 import { InputSystem } from '../systems/InputSystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
 import { createPlayerHudState } from '../ui/hudState';
-import type { DebugSnapshot, HudModel } from '../ui/HudModel';
+import type { DebugSnapshot, HudModel, Outcome } from '../ui/HudModel';
 import { Arena } from '../world/Arena';
+
+const OUTCOME_DELAY_MS = 900;
 
 type ArcadeCollisionObject =
   | Phaser.Types.Physics.Arcade.GameObjectWithBody
@@ -36,7 +39,9 @@ export class ArenaScene extends Phaser.Scene {
   private coopCamera!: CoopCamera;
   private hudModel!: HudModel;
   private debugDamageKeys: DebugDamageKey[] = [];
+  private outcomeScheduled = false;
   private outcomeHandled = false;
+  private outcomeTimer: Phaser.Time.TimerEvent | null = null;
   private reflections = 0;
 
   constructor() {
@@ -46,7 +51,10 @@ export class ArenaScene extends Phaser.Scene {
   create(): void {
     createPlaceholderTextures(this);
 
+    this.physics.resume();
+    this.outcomeScheduled = false;
     this.outcomeHandled = false;
+    this.outcomeTimer = null;
     this.reflections = 0;
     this.arena = new Arena(this);
     this.players = this.createPlayers();
@@ -104,7 +112,7 @@ export class ArenaScene extends Phaser.Scene {
     this.coopCamera.update(this.players);
 
     this.hudModel = {
-      objective: this.objectiveFor(this.encounterSystem.aliveCount),
+      objective: this.objectiveForPhase(this.encounterSystem.phase),
       players: this.players.map((player) =>
         createPlayerHudState(player.id),
       ),
@@ -119,6 +127,10 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.outcomeHandled) {
+      return;
+    }
+
     this.inputSystem.update();
 
     for (const player of this.players) {
@@ -149,8 +161,9 @@ export class ArenaScene extends Phaser.Scene {
     this.handleDebugDamage();
     this.coopCamera.update(this.players);
     this.syncHudState();
+    this.syncBossHud();
     this.syncObjective();
-    this.checkDefeat();
+    this.checkOutcome();
     this.hudModel.debug = this.createDebugSnapshot();
   }
 
@@ -361,30 +374,83 @@ export class ArenaScene extends Phaser.Scene {
     }
   }
 
+  private syncBossHud(): void {
+    const boss = this.encounterSystem.activeBoss;
+
+    if (!boss) {
+      this.hudModel.boss = null;
+      return;
+    }
+
+    const state = this.hudModel.boss;
+
+    if (state) {
+      state.health = boss.health.current;
+      return;
+    }
+
+    this.hudModel.boss = {
+      name: BOSS.name,
+      health: boss.health.current,
+      maxHealth: boss.health.maxHealth,
+    };
+  }
+
   private syncObjective(): void {
-    if (this.hudModel.outcome !== null) {
+    if (this.hudModel.outcome !== null || this.outcomeScheduled) {
       return;
     }
 
-    this.hudModel.objective = this.objectiveFor(
-      this.encounterSystem.aliveCount,
-    );
+    this.hudModel.objective = this.objectiveForPhase(this.encounterSystem.phase);
   }
 
-  private objectiveFor(remaining: number): string {
-    return remaining > 0
-      ? `Defeat the grunts — ${remaining} remaining.`
-      : 'The first wave is defeated.';
+  private objectiveForPhase(phase: EncounterPhase): string {
+    switch (phase) {
+      case 'grunts': {
+        const remaining = this.encounterSystem.aliveCount;
+
+        return remaining > 0
+          ? `Defeat the grunts — ${remaining} remaining.`
+          : 'The first wave is defeated.';
+      }
+      case 'bossTelegraph':
+        return 'Something stirs at the far end of the arena…';
+      case 'boss':
+        return `Defeat ${BOSS.name}.`;
+      case 'cleared':
+        return `The ${BOSS.name} has fallen.`;
+    }
   }
 
-  private checkDefeat(): void {
-    if (this.outcomeHandled || this.players.some((player) => player.isAlive)) {
+  private checkOutcome(): void {
+    if (this.outcomeScheduled) {
       return;
     }
 
-    this.outcomeHandled = true;
-    this.hudModel.outcome = 'defeat';
-    this.hudModel.objective = 'Both players have fallen.';
+    if (this.encounterSystem.bossDefeated) {
+      this.scheduleOutcome('victory');
+      return;
+    }
+
+    if (!this.players.some((player) => player.isAlive)) {
+      this.scheduleOutcome('defeat');
+    }
+  }
+
+  private scheduleOutcome(outcome: Outcome): void {
+    this.outcomeScheduled = true;
+    this.hudModel.objective =
+      outcome === 'victory'
+        ? `The ${BOSS.name} has fallen.`
+        : 'Both players have fallen.';
+
+    this.outcomeTimer?.remove();
+    this.outcomeTimer = this.time.delayedCall(OUTCOME_DELAY_MS, () => {
+      this.outcomeTimer = null;
+      this.outcomeHandled = true;
+      this.hudModel.outcome = outcome;
+      this.physics.pause();
+    });
   }
 
   private createDebugSnapshot(): DebugSnapshot {
@@ -408,6 +474,10 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private handleShutdown(): void {
+    this.outcomeTimer?.remove();
+    this.outcomeTimer = null;
+    this.physics.resume();
+
     this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();
     this.removeDebugDamageKeys();

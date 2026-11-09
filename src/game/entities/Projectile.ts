@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { SHIELD } from '../config/combatConfig';
+import { getBulletDamage } from '../config/combatTuning';
 import { COLORS } from '../config/theme';
 import type {
   ProjectilePreset,
@@ -17,7 +19,6 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   damage: number;
   reflectionCount = 0;
 
-  private remainingMs: number;
   private reflectLockRemaining = 0;
 
   constructor(scene: Phaser.Scene, spawn: ProjectileSpawn) {
@@ -27,8 +28,7 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     this.team = spawn.team;
     this.ownerId = spawn.ownerId;
     this.sourceId = spawn.sourceId;
-    this.damage = spawn.preset.damage;
-    this.remainingMs = spawn.preset.lifetimeMs;
+    this.damage = getBulletDamage(spawn.team);
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -50,14 +50,11 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     }
   }
 
-  updateTimers(deltaMs: number): boolean {
-    this.remainingMs -= deltaMs;
+  updateTimers(deltaMs: number): void {
     this.reflectLockRemaining = Math.max(
       0,
       this.reflectLockRemaining - deltaMs,
     );
-
-    return this.remainingMs <= 0;
   }
 
   get isReflectable(): boolean {
@@ -81,11 +78,18 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   }
 
   reflect(reflection: ProjectileReflection): void {
+    const fromAlly = this.team === 'players';
+    const damageMultiplier = fromAlly
+      ? SHIELD.allyReflectDamageMultiplier
+      : SHIELD.enemyReflectDamageMultiplier;
+    const scaleMultiplier = fromAlly
+      ? SHIELD.allyReflectScale
+      : SHIELD.enemyReflectScale;
+
+    this.damage *= damageMultiplier;
+    this.setScale(this.scaleX * scaleMultiplier, this.scaleY * scaleMultiplier);
     this.team = reflection.team;
     this.ownerId = reflection.ownerId;
-    this.damage = Math.round(
-      this.damage * this.preset.reflectDamageMultiplier,
-    );
     this.reflectionCount += 1;
 
     const x = this.x + Math.cos(reflection.angle) * reflection.offset;
@@ -101,7 +105,6 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
     this.setVelocity(velocity.x, velocity.y);
 
     this.setTint(COLORS.reflectedProjectile);
-    this.setScale(1.3);
     this.lockReflection(reflection.lockMs);
   }
 

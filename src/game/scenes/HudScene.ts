@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { SceneKeys } from '../config/sceneKeys';
-import { VIEWPORT } from '../config/gameplayConfig';
+import { DEBUG, VIEWPORT } from '../config/gameplayConfig';
 import { UI_COLORS } from '../config/theme';
 import { BossHealthBar } from '../ui/BossHealthBar';
+import { DamageDebugPanel } from '../ui/DamageDebugPanel';
 import { DebugOverlay } from '../ui/DebugOverlay';
 import { PlayerHudPanel } from '../ui/PlayerHudPanel';
+import { ResultOverlay } from '../ui/ResultOverlay';
 import type { HudModel } from '../ui/HudModel';
 
 interface HudSceneData {
@@ -17,6 +19,8 @@ export class HudScene extends Phaser.Scene {
   private bossBar!: BossHealthBar;
   private objectiveText!: Phaser.GameObjects.Text;
   private debugOverlay!: DebugOverlay;
+  private damageDebugPanel: DamageDebugPanel | null = null;
+  private resultOverlay!: ResultOverlay;
 
   constructor() {
     super(SceneKeys.Hud);
@@ -47,6 +51,10 @@ export class HudScene extends Phaser.Scene {
 
     this.bossBar = new BossHealthBar(this);
     this.debugOverlay = new DebugOverlay(this);
+    this.damageDebugPanel = DEBUG.enabled
+      ? new DamageDebugPanel(this)
+      : null;
+    this.resultOverlay = new ResultOverlay(this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
     this.scene.bringToTop();
@@ -61,6 +69,7 @@ export class HudScene extends Phaser.Scene {
 
     this.bossBar.update(this.model.boss);
     this.debugOverlay.update(this.model.debug);
+    this.resultOverlay.update(this.model.outcome);
   }
 
   private handleShutdown(): void {
@@ -72,5 +81,8 @@ export class HudScene extends Phaser.Scene {
     this.bossBar.destroy();
     this.objectiveText.destroy();
     this.debugOverlay.destroy();
+    this.damageDebugPanel?.destroy();
+    this.damageDebugPanel = null;
+    this.resultOverlay.destroy();
   }
 }

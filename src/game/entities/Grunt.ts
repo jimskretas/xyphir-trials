@@ -20,12 +20,12 @@ export class Grunt extends EnemyBase {
   protected updateBehavior(
     deltaMs: number,
     target: Player | null,
-  ): ProjectileSpawn | null {
+  ): ProjectileSpawn[] {
     this.shotCooldown.update(deltaMs);
 
     if (!target) {
       this.stopMoving();
-      return null;
+      return [];
     }
 
     const distance = Phaser.Math.Distance.Between(
@@ -52,17 +52,19 @@ export class Grunt extends EnemyBase {
     }
 
     if (distance > GRUNT.fireRange || !this.shotCooldown.tryUse()) {
-      return null;
+      return [];
     }
 
-    return {
-      x: this.x + Math.cos(aimAngle) * GRUNT.spawnOffset,
-      y: this.y + Math.sin(aimAngle) * GRUNT.spawnOffset,
-      angle: aimAngle,
-      team: 'enemies',
-      ownerId: this.id,
-      sourceId: this.id,
-      preset: GRUNT.bolt,
-    };
+    return [
+      {
+        x: this.x + Math.cos(aimAngle) * GRUNT.spawnOffset,
+        y: this.y + Math.sin(aimAngle) * GRUNT.spawnOffset,
+        angle: aimAngle,
+        team: 'enemies',
+        ownerId: this.id,
+        sourceId: this.id,
+        preset: GRUNT.bolt,
+      },
+    ];
   }
 }

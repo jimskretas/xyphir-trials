@@ -24,7 +24,9 @@ export class ProjectileSystem {
 
   update(deltaMs: number): void {
     for (const projectile of [...this.live]) {
-      if (projectile.updateTimers(deltaMs) || !projectile.active) {
+      projectile.updateTimers(deltaMs);
+
+      if (!projectile.active) {
         this.remove(projectile);
       }
     }
