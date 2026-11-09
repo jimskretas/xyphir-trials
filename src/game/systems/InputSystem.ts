@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { PLAYER_CONTROLS, PLAYER_IDS } from '../config/controls';
-import type { PlayerId } from '../config/controls';
+import { PLAYER_CONTROLS } from '../config/controls';
+import type { PlayerControls, PlayerId } from '../config/controls';
 
 export interface PlayerInputState {
   movement: Phaser.Math.Vector2;
@@ -23,80 +23,76 @@ interface PlayerKeys {
   skills: Phaser.Input.Keyboard.Key[];
 }
 
+/**
+ * Reads one local keyboard control profile. Online sessions use the same
+ * layout for both host and guest because each player has their own machine.
+ */
 export class InputSystem {
-  private readonly keys = new Map<PlayerId, PlayerKeys>();
-  private readonly states = new Map<PlayerId, PlayerInputState>();
+  readonly playerId: PlayerId;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  private readonly keys: PlayerKeys;
+  private readonly state: PlayerInputState;
+
+  constructor(
+    private readonly scene: Phaser.Scene,
+    controls: PlayerControls = PLAYER_CONTROLS.p1,
+    playerId: PlayerId = 'p1',
+  ) {
+    this.playerId = playerId;
+
     const keyboard = scene.input.keyboard;
 
     if (!keyboard) {
       throw new Error('Keyboard input is not available in this environment.');
     }
 
-    for (const id of PLAYER_IDS) {
-      const { binding } = PLAYER_CONTROLS[id];
+    const { binding } = controls;
 
-      this.keys.set(id, {
-        up: keyboard.addKey(binding.up),
-        down: keyboard.addKey(binding.down),
-        left: keyboard.addKey(binding.left),
-        right: keyboard.addKey(binding.right),
-        fireball: keyboard.addKey(binding.fireball),
-        shield: keyboard.addKey(binding.shield),
-        dash: keyboard.addKey(binding.dash),
-        autoAttack: keyboard.addKey(binding.autoAttack),
-        skills: PLAYER_CONTROLS[id].skills.map((skill) =>
-          keyboard.addKey(skill.key),
-        ),
-      });
+    this.keys = {
+      up: keyboard.addKey(binding.up),
+      down: keyboard.addKey(binding.down),
+      left: keyboard.addKey(binding.left),
+      right: keyboard.addKey(binding.right),
+      fireball: keyboard.addKey(binding.fireball),
+      shield: keyboard.addKey(binding.shield),
+      dash: keyboard.addKey(binding.dash),
+      autoAttack: keyboard.addKey(binding.autoAttack),
+      skills: controls.skills.map((skill) => keyboard.addKey(skill.key)),
+    };
 
-      this.states.set(id, {
-        movement: new Phaser.Math.Vector2(),
-        fireball: false,
-        shield: false,
-        dash: false,
-        autoAttackToggle: false,
-        skillCasts: [],
-      });
-    }
+    this.state = {
+      movement: new Phaser.Math.Vector2(),
+      fireball: false,
+      shield: false,
+      dash: false,
+      autoAttackToggle: false,
+      skillCasts: controls.skills.map(() => false),
+    };
   }
 
   update(): void {
-    for (const id of PLAYER_IDS) {
-      const keys = this.keys.get(id);
-      const state = this.states.get(id);
+    const keys = this.keys;
+    const state = this.state;
 
-      if (!keys || !state) {
-        continue;
-      }
+    state.movement.set(
+      Number(keys.right.isDown) - Number(keys.left.isDown),
+      Number(keys.down.isDown) - Number(keys.up.isDown),
+    );
+    state.fireball = Phaser.Input.Keyboard.JustDown(keys.fireball);
+    state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
+    state.dash = Phaser.Input.Keyboard.JustDown(keys.dash);
+    state.autoAttackToggle = Phaser.Input.Keyboard.JustDown(keys.autoAttack);
+    state.skillCasts.length = keys.skills.length;
 
-      state.movement.set(
-        Number(keys.right.isDown) - Number(keys.left.isDown),
-        Number(keys.down.isDown) - Number(keys.up.isDown),
+    for (let index = 0; index < keys.skills.length; index += 1) {
+      state.skillCasts[index] = Phaser.Input.Keyboard.JustDown(
+        keys.skills[index],
       );
-      state.fireball = Phaser.Input.Keyboard.JustDown(keys.fireball);
-      state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
-      state.dash = Phaser.Input.Keyboard.JustDown(keys.dash);
-      state.autoAttackToggle = Phaser.Input.Keyboard.JustDown(keys.autoAttack);
-      state.skillCasts.length = keys.skills.length;
-
-      for (let index = 0; index < keys.skills.length; index += 1) {
-        state.skillCasts[index] = Phaser.Input.Keyboard.JustDown(
-          keys.skills[index],
-        );
-      }
     }
   }
 
-  getState(id: PlayerId): PlayerInputState {
-    const state = this.states.get(id);
-
-    if (!state) {
-      throw new Error(`No input state registered for ${id}.`);
-    }
-
-    return state;
+  getState(): PlayerInputState {
+    return this.state;
   }
 
   destroy(): void {
@@ -106,23 +102,18 @@ export class InputSystem {
       return;
     }
 
-    for (const keys of this.keys.values()) {
-      for (const key of [
-        keys.up,
-        keys.down,
-        keys.left,
-        keys.right,
-        keys.fireball,
-        keys.shield,
-        keys.dash,
-        keys.autoAttack,
-        ...keys.skills,
-      ]) {
-        keyboard.removeKey(key, true, true);
-      }
+    for (const key of [
+      this.keys.up,
+      this.keys.down,
+      this.keys.left,
+      this.keys.right,
+      this.keys.fireball,
+      this.keys.shield,
+      this.keys.dash,
+      this.keys.autoAttack,
+      ...this.keys.skills,
+    ]) {
+      keyboard.removeKey(key, true, true);
     }
-
-    this.keys.clear();
-    this.states.clear();
   }
 }

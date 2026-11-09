@@ -22,7 +22,7 @@ const PRESENTATIONS: Record<Outcome, OutcomePresentation> = {
   },
   defeat: {
     title: 'DEFEAT',
-    subtitle: 'Both players have fallen. The trials endure.',
+    subtitle: 'All players have fallen. The trials endure.',
     color: UI_COLORS.resultDefeat,
     edge: 0xf87171,
   },
@@ -67,7 +67,7 @@ export class ResultOverlay {
       .text(
         VIEWPORT.width / 2,
         VIEWPORT.height / 2 + 74,
-        'R  RESTART          ESC  TITLE',
+        'R  RESTART          ESC  LEAVE',
         {
           fontFamily: 'Consolas, "Courier New", monospace',
           fontSize: '15px',
@@ -89,7 +89,11 @@ export class ResultOverlay {
       .setVisible(false);
   }
 
-  update(outcome: Outcome | null): void {
+  setHint(value: string): void {
+    this.hintText.setText(value);
+  }
+
+  update(outcome: Outcome | null, subtitleOverride?: string): void {
     if (outcome === null) {
       if (this.current !== null) {
         this.current = null;
@@ -100,6 +104,10 @@ export class ResultOverlay {
     }
 
     if (outcome === this.current) {
+      if (subtitleOverride !== undefined) {
+        this.subtitleText.setText(subtitleOverride);
+      }
+
       return;
     }
 
@@ -108,7 +116,7 @@ export class ResultOverlay {
     const presentation = PRESENTATIONS[outcome];
 
     this.titleText.setText(presentation.title).setColor(presentation.color);
-    this.subtitleText.setText(presentation.subtitle);
+    this.subtitleText.setText(subtitleOverride ?? presentation.subtitle);
     this.drawPanel(presentation.edge);
     this.container.setVisible(true);
 

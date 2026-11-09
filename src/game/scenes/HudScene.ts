@@ -55,6 +55,7 @@ export class HudScene extends Phaser.Scene {
       ? new DamageDebugPanel(this)
       : null;
     this.resultOverlay = new ResultOverlay(this);
+    this.resultOverlay.setHint(this.model.resultHint);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
     this.scene.bringToTop();
@@ -69,7 +70,17 @@ export class HudScene extends Phaser.Scene {
 
     this.bossBar.update(this.model.boss);
     this.debugOverlay.update(this.model.debug);
-    this.resultOverlay.update(this.model.outcome);
+    this.resultOverlay.update(this.model.outcome, this.resultSubtitle());
+  }
+
+  private resultSubtitle(): string | undefined {
+    if (this.model.outcome !== 'defeat') {
+      return undefined;
+    }
+
+    return this.model.players.length > 1
+      ? 'All players have fallen. The trials endure.'
+      : 'You have fallen. The trials endure.';
   }
 
   private handleShutdown(): void {

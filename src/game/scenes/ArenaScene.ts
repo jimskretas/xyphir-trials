@@ -5,6 +5,7 @@ import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
 import { TURRET_SKILL } from '../config/skills';
+import { Boss } from '../entities/Boss';
 import { EnemyBase } from '../entities/EnemyBase';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
@@ -15,13 +16,31 @@ import { CoopCamera } from '../systems/CoopCamera';
 import { EncounterSystem } from '../systems/EncounterSystem';
 import type { EncounterPhase } from '../systems/EncounterSystem';
 import { InputSystem } from '../systems/InputSystem';
+import type { PlayerInputState } from '../systems/InputSystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
 import { sfx } from '../systems/SfxSystem';
+import type { SfxName } from '../systems/SfxSystem';
 import { createPlayerHudState } from '../ui/hudState';
 import type { DebugSnapshot, HudModel, Outcome } from '../ui/HudModel';
 import { Arena } from '../world/Arena';
+import { getRoomSession } from '../../net/session';
+import type { RoomSession } from '../../net/RoomSession';
+import type {
+  NetEnemyState,
+  NetInputFrame,
+  NetPlayerState,
+  NetProjectileState,
+  NetSnapshot,
+  NetTurretState,
+} from '../../net/types';
 
 const OUTCOME_DELAY_MS = 900;
+const SNAPSHOT_INTERVAL_MS = 50;
+
+export interface ArenaSceneData {
+  mode: 'solo' | 'host';
+  runId: number;
+}
 
 type ArcadeCollisionObject =
   | Phaser.Types.Physics.Arcade.GameObjectWithBody
@@ -35,9 +54,13 @@ interface DebugDamageKey {
 }
 
 export class ArenaScene extends Phaser.Scene {
+  private mode: ArenaSceneData['mode'] = 'solo';
+  private runId = 0;
+  private session: RoomSession | null = null;
   private arena!: Arena;
   private players: Player[] = [];
   private inputSystem!: InputSystem;
+  private remoteInput!: PlayerInputState;
   private projectileSystem!: ProjectileSystem;
   private encounterSystem!: EncounterSystem;
   private coopCamera!: CoopCamera;
@@ -47,34 +70,51 @@ export class ArenaScene extends Phaser.Scene {
   private outcomeScheduled = false;
   private outcomeHandled = false;
   private outcomeTimer: Phaser.Time.TimerEvent | null = null;
+  private snapshotTimer: Phaser.Time.TimerEvent | null = null;
   private reflections = 0;
 
   constructor() {
     super(SceneKeys.Arena);
   }
 
-  create(): void {
+  create(data: ArenaSceneData = { mode: 'solo', runId: 0 }): void {
     createPlaceholderTextures(this);
+
+    this.mode = data.mode;
+    this.runId = data.runId;
+    this.session = this.mode === 'host' ? getRoomSession() : null;
+
+    if (this.session && this.session.role !== 'host') {
+      this.session = null;
+      this.mode = 'solo';
+    }
 
     this.physics.resume();
     this.outcomeScheduled = false;
     this.outcomeHandled = false;
     this.outcomeTimer = null;
+    this.snapshotTimer = null;
     this.reflections = 0;
+    this.remoteInput = this.createEmptyInput();
     this.arena = new Arena(this);
     this.players = this.createPlayers();
-    this.playerSkills = new Map<PlayerId, Skill[]>([
-      ['p1', [new TurretSkill(this, TURRET_SKILL)]],
-    ]);
+    this.playerSkills = new Map<PlayerId, Skill[]>();
+
+    for (const player of this.players) {
+      this.playerSkills.set(player.id, [new TurretSkill(this, TURRET_SKILL)]);
+    }
 
     this.physics.add.collider(this.players, this.arena.walls);
-    this.physics.add.collider(
-      this.players[0],
-      this.players[1],
-      undefined,
-      this.shouldPlayersCollide,
-      this,
-    );
+
+    if (this.players.length > 1) {
+      this.physics.add.collider(
+        this.players[0],
+        this.players[1],
+        undefined,
+        this.shouldPlayersCollide,
+        this,
+      );
+    }
 
     this.projectileSystem = new ProjectileSystem(this);
     this.physics.add.collider(
@@ -87,7 +127,9 @@ export class ArenaScene extends Phaser.Scene {
       },
     );
 
-    this.encounterSystem = new EncounterSystem(this);
+    this.encounterSystem = new EncounterSystem(this, (name) => {
+      this.playSfx(name);
+    });
     this.encounterSystem.spawnOpeningWave();
 
     this.physics.add.collider(this.encounterSystem.group, this.arena.walls);
@@ -126,23 +168,37 @@ export class ArenaScene extends Phaser.Scene {
       bounds.height,
     );
 
-    this.inputSystem = new InputSystem(this);
+    const localPlayerId = this.session?.localPlayerId ?? 'p1';
+    this.inputSystem = new InputSystem(
+      this,
+      PLAYER_CONTROLS[localPlayerId],
+      localPlayerId,
+    );
     this.setupDebugDamageKeys();
     this.setupResultInput();
+    this.attachSessionCallbacks();
     this.coopCamera = new CoopCamera(this, this.cameras.main, bounds);
     this.coopCamera.update(this.players);
 
     this.hudModel = {
       objective: this.objectiveForPhase(this.encounterSystem.phase),
-      players: this.players.map((player) =>
-        createPlayerHudState(player.id),
-      ),
+      players: this.players.map((player) => createPlayerHudState(player.id)),
       boss: null,
       debug: { players: [], enemies: 0, projectiles: 0, reflections: 0, fps: 0 },
       outcome: null,
+      resultHint: this.createResultHint(),
     };
 
     this.scene.launch(SceneKeys.Hud, { model: this.hudModel });
+
+    if (this.session) {
+      this.snapshotTimer = this.time.addEvent({
+        delay: SNAPSHOT_INTERVAL_MS,
+        loop: true,
+        callback: this.sendSnapshot,
+        callbackScope: this,
+      });
+    }
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
@@ -154,51 +210,26 @@ export class ArenaScene extends Phaser.Scene {
 
     this.inputSystem.update();
 
-    const enemies = this.encounterSystem.enemies;
+    const localPlayer = this.players.find(
+      (player) => player.id === this.inputSystem.playerId,
+    );
 
-    for (const player of this.players) {
-      const input = this.inputSystem.getState(player.id);
+    if (localPlayer) {
+      this.applyPlayerInput(
+        localPlayer,
+        this.inputSystem.getState(),
+        delta,
+        true,
+      );
+    }
 
-      player.update(input.movement, delta);
+    const remotePlayer = this.players.find(
+      (player) => player.id === 'p2',
+    );
 
-      if (input.autoAttackToggle && player.toggleAutoAttack()) {
-        sfx.play('toggle');
-      }
-
-      if (input.fireball) {
-        this.firePlayer(player);
-      }
-
-      if (player.autoAttackEnabled) {
-        this.firePlayer(player);
-      }
-
-      if (input.shield && player.tryShield()) {
-        sfx.play('shield');
-      }
-
-      if (input.dash && player.tryDash(input.movement)) {
-        sfx.play('dash');
-      }
-
-      const skills = this.playerSkills.get(player.id);
-
-      if (!skills || this.outcomeScheduled) {
-        continue;
-      }
-
-      for (let index = 0; index < skills.length; index += 1) {
-        const skill = skills[index];
-        const shots = skill.update(delta, { enemies });
-
-        for (const shot of shots) {
-          this.projectileSystem.spawn(shot);
-        }
-
-        if (input.skillCasts[index] === true && skill.tryCast({ player })) {
-          sfx.play('skill');
-        }
-      }
+    if (remotePlayer && this.session) {
+      this.applyPlayerInput(remotePlayer, this.remoteInput, delta, false);
+      this.clearInputEdges(this.remoteInput);
     }
 
     const enemyShots = this.outcomeScheduled
@@ -223,6 +254,12 @@ export class ArenaScene extends Phaser.Scene {
     const centerX = ARENA.width / 2;
     const centerY = ARENA.height / 2;
 
+    if (this.mode === 'solo') {
+      return [
+        new Player(this, 'p1', centerX - PLAYER.spawnSpacing, centerY, 0),
+      ];
+    }
+
     return [
       new Player(this, 'p1', centerX - PLAYER.spawnSpacing, centerY, 0),
       new Player(
@@ -235,6 +272,56 @@ export class ArenaScene extends Phaser.Scene {
     ];
   }
 
+  private applyPlayerInput(
+    player: Player,
+    input: PlayerInputState,
+    delta: number,
+    _isLocal: boolean,
+  ): void {
+    const enemies = this.encounterSystem.enemies;
+
+    player.update(input.movement, delta);
+
+    if (input.autoAttackToggle && player.toggleAutoAttack()) {
+      this.playSfx('toggle');
+    }
+
+    if (input.fireball) {
+      this.firePlayer(player);
+    }
+
+    if (player.autoAttackEnabled) {
+      this.firePlayer(player);
+    }
+
+    if (input.shield && player.tryShield()) {
+      this.playSfx('shield');
+    }
+
+    if (input.dash && player.tryDash(input.movement)) {
+      this.playSfx('dash');
+    }
+
+    const skills = this.playerSkills.get(player.id);
+
+    if (!skills || this.outcomeScheduled) {
+      return;
+    }
+
+    for (let index = 0; index < skills.length; index += 1) {
+      const skill = skills[index];
+      const shots = skill.update(delta, { enemies });
+
+      for (const shot of shots) {
+        this.projectileSystem.spawn(shot);
+      }
+
+      if (input.skillCasts[index] === true && skill.tryCast({ player })) {
+        this.playSfx('skill');
+      }
+    }
+  }
+
   private firePlayer(player: Player): void {
     const spawn = player.tryFire();
 
@@ -243,7 +330,264 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.projectileSystem.spawn(spawn);
-    sfx.play('fireball');
+    this.playSfx('fireball');
+  }
+
+  private playSfx(name: SfxName): void {
+    sfx.play(name);
+    this.session?.sendSfx(name);
+  }
+
+  private receiveRemoteInput(frame: NetInputFrame): void {
+    this.remoteInput.movement.set(
+      this.clampAxis(frame.movementX),
+      this.clampAxis(frame.movementY),
+    );
+
+    if (frame.fireball) {
+      this.remoteInput.fireball = true;
+    }
+
+    if (frame.shield) {
+      this.remoteInput.shield = true;
+    }
+
+    if (frame.dash) {
+      this.remoteInput.dash = true;
+    }
+
+    if (frame.autoAttackToggle) {
+      this.remoteInput.autoAttackToggle = true;
+    }
+
+    if (Array.isArray(frame.skillCasts)) {
+      for (
+        let index = 0;
+        index < frame.skillCasts.length &&
+        index < this.remoteInput.skillCasts.length;
+        index += 1
+      ) {
+        if (frame.skillCasts[index] === true) {
+          this.remoteInput.skillCasts[index] = true;
+        }
+      }
+    }
+  }
+
+  private clampAxis(value: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return 0;
+    }
+
+    return Phaser.Math.Clamp(value, -1, 1);
+  }
+
+  private createEmptyInput(): PlayerInputState {
+    return {
+      movement: new Phaser.Math.Vector2(),
+      fireball: false,
+      shield: false,
+      dash: false,
+      autoAttackToggle: false,
+      skillCasts: [false],
+    };
+  }
+
+  private clearInputEdges(input: PlayerInputState): void {
+    input.fireball = false;
+    input.shield = false;
+    input.dash = false;
+    input.autoAttackToggle = false;
+    input.skillCasts.fill(false);
+  }
+
+  private attachSessionCallbacks(): void {
+    const session = this.session;
+
+    if (!session) {
+      return;
+    }
+
+    session.onInput = (frame) => {
+      this.receiveRemoteInput(frame);
+    };
+
+    session.onRestartRequest = () => {
+      this.handleRestartRequest();
+    };
+
+    session.onGuestLeft = () => {
+      this.handleGuestLeft();
+    };
+  }
+
+  private sendSnapshot(): void {
+    const session = this.session;
+
+    if (!session || !session.hasGuest) {
+      return;
+    }
+
+    session.sendSnapshot(this.buildSnapshot());
+  }
+
+  private buildSnapshot(): NetSnapshot {
+    const boss = this.encounterSystem.activeBoss;
+
+    return {
+      type: 'snapshot',
+      runId: this.session?.runId ?? this.runId,
+      serverTime: this.time.now,
+      players: this.players.map((player) => this.netPlayerState(player)),
+      enemies: this.netEnemyStates(),
+      projectiles: this.netProjectileStates(),
+      turrets: this.netTurretStates(),
+      boss: boss
+        ? {
+            health: boss.health.current,
+            maxHealth: boss.health.maxHealth,
+          }
+        : null,
+      telegraph: this.encounterSystem.telegraphState,
+      objective: this.hudModel.objective,
+      outcome: this.hudModel.outcome,
+      reflections: this.reflections,
+      debugEnemies: this.encounterSystem.aliveCount,
+      debugProjectiles: this.projectileSystem.count,
+    };
+  }
+
+  private netPlayerState(player: Player): NetPlayerState {
+    const skill = this.playerSkills.get(player.id)?.[0] ?? null;
+
+    return {
+      id: player.id,
+      x: player.x,
+      y: player.y,
+      rotation: player.rotation,
+      alpha: player.alpha,
+      tint: player.isTinted ? player.tintTopLeft : null,
+      health: player.health.current,
+      maxHealth: player.health.maxHealth,
+      alive: player.isAlive,
+      dashing: player.isDashing,
+      autoAttack: player.autoAttackEnabled,
+      shieldActive: player.shield.isActive,
+      fireball: {
+        ready: player.fireball.cooldown.isReady,
+        active: false,
+        ratio: player.fireball.cooldown.readyRatio,
+      },
+      shield: {
+        ready: player.shield.cooldown.isReady,
+        active: player.shield.isActive,
+        ratio: player.shield.isActive
+          ? player.shield.activeRatio
+          : player.shield.cooldown.readyRatio,
+      },
+      dash: {
+        ready: player.dash.cooldown.isReady,
+        active: player.dash.isDashing,
+        ratio: player.dash.isDashing
+          ? player.dash.activeRatio
+          : player.dash.cooldown.readyRatio,
+      },
+      skill: skill
+        ? {
+            ready: skill.isReady,
+            active: skill.isActive,
+            ratio: skill.statusRatio,
+          }
+        : null,
+    };
+  }
+
+  private netEnemyStates(): NetEnemyState[] {
+    return this.encounterSystem.enemies.map((enemy) => ({
+      id: enemy.id,
+      kind: enemy instanceof Boss ? 'boss' : 'grunt',
+      x: enemy.x,
+      y: enemy.y,
+      rotation: enemy.rotation,
+      alpha: enemy.alpha,
+      scaleX: enemy.scaleX,
+      scaleY: enemy.scaleY,
+      tint: enemy.isTinted ? enemy.tintTopLeft : null,
+    }));
+  }
+
+  private netProjectileStates(): NetProjectileState[] {
+    return this.projectileSystem.liveProjectiles.map((projectile) => ({
+      id: projectile.netId,
+      x: projectile.x,
+      y: projectile.y,
+      rotation: projectile.rotation,
+      texture: projectile.preset.texture,
+      scaleX: projectile.scaleX,
+      scaleY: projectile.scaleY,
+      tint: projectile.isTinted ? projectile.tintTopLeft : null,
+    }));
+  }
+
+  private netTurretStates(): NetTurretState[] {
+    const turrets: NetTurretState[] = [];
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        if (skill instanceof TurretSkill && skill.renderState) {
+          turrets.push(skill.renderState);
+        }
+      }
+    }
+
+    return turrets;
+  }
+
+  private handleRestartRequest(): void {
+    if (!this.outcomeHandled) {
+      return;
+    }
+
+    this.restartRun();
+  }
+
+  private restartRun(): void {
+    const session = this.session;
+
+    if (session) {
+      session.restartRun();
+
+      this.scene.restart({
+        mode: 'host',
+        runId: session.runId,
+      });
+      return;
+    }
+
+    this.scene.restart({ mode: 'solo', runId: 0 });
+  }
+
+  private handleGuestLeft(): void {
+    const session = this.session;
+
+    if (!session) {
+      return;
+    }
+
+    session.resetForLobby();
+    session.detachCallbacks();
+    this.session = null;
+    this.scene.start(SceneKeys.Lobby, {
+      notice: 'Your partner left the room. The room is still open.',
+    });
+  }
+
+  private createResultHint(): string {
+    if (!this.session) {
+      return 'R  RESTART          ESC  TITLE';
+    }
+
+    return 'R  RESTART FOR BOTH          ESC  LEAVE ROOM';
   }
 
   private handleProjectileEnemyOverlap(
@@ -266,7 +610,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     enemy.takeDamage(projectile.damage);
-    sfx.play(enemy.isAlive ? 'enemyHit' : 'enemyDeath');
+    this.playSfx(enemy.isAlive ? 'enemyHit' : 'enemyDeath');
     this.projectileSystem.remove(projectile);
   }
 
@@ -298,7 +642,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (player.takeDamage(projectile.damage)) {
-      sfx.play('playerHit');
+      this.playSfx('playerHit');
     }
 
     this.projectileSystem.remove(projectile);
@@ -343,7 +687,7 @@ export class ArenaScene extends Phaser.Scene {
 
     player.flashShield();
     this.reflections += 1;
-    sfx.play('reflect');
+    this.playSfx('reflect');
     this.cameras.main.shake(90, 0.004);
     return true;
   }
@@ -433,7 +777,7 @@ export class ArenaScene extends Phaser.Scene {
         );
 
         if (player?.takeDamage(DEBUG.damageAmount)) {
-          sfx.play('playerHit');
+          this.playSfx('playerHit');
         }
       }
     }
@@ -450,6 +794,7 @@ export class ArenaScene extends Phaser.Scene {
       }
 
       state.health = player.health.current;
+      state.maxHealth = player.health.maxHealth;
       state.downed = !player.isAlive;
       state.autoAttack = player.autoAttackEnabled;
 
@@ -552,7 +897,9 @@ export class ArenaScene extends Phaser.Scene {
     this.hudModel.objective =
       outcome === 'victory'
         ? `The ${BOSS.name} has fallen.`
-        : 'Both players have fallen.';
+        : this.players.length > 1
+          ? 'All players have fallen.'
+          : 'You have fallen.';
 
     this.projectileSystem.clearTeam('enemies');
 
@@ -562,7 +909,7 @@ export class ArenaScene extends Phaser.Scene {
       this.outcomeHandled = true;
       this.hudModel.outcome = outcome;
       this.physics.pause();
-      sfx.play(outcome);
+      this.playSfx(outcome);
     });
   }
 
@@ -596,7 +943,7 @@ export class ArenaScene extends Phaser.Scene {
     const keyboard = this.input.keyboard;
 
     keyboard?.on('keydown-R', this.handleRestartInput, this);
-    keyboard?.on('keydown-ESC', this.handleTitleInput, this);
+    keyboard?.on('keydown-ESC', this.handleLeaveInput, this);
   }
 
   private handleRestartInput(): void {
@@ -604,28 +951,38 @@ export class ArenaScene extends Phaser.Scene {
       return;
     }
 
-    this.scene.restart();
+    this.restartRun();
   }
 
-  private handleTitleInput(): void {
-    if (!this.outcomeHandled) {
-      return;
+  private handleLeaveInput(): void {
+    const session = this.session;
+
+    this.session = null;
+
+    if (session) {
+      session.detachCallbacks();
+      void session.leave().catch(() => undefined);
     }
 
-    this.scene.start(SceneKeys.Start);
+    this.scene.start(SceneKeys.Lobby, {
+      notice: session ? 'You left the room.' : 'Returned to the lobby.',
+    });
   }
 
   private removeResultInput(): void {
     const keyboard = this.input.keyboard;
 
     keyboard?.off('keydown-R', this.handleRestartInput, this);
-    keyboard?.off('keydown-ESC', this.handleTitleInput, this);
+    keyboard?.off('keydown-ESC', this.handleLeaveInput, this);
   }
 
   private handleShutdown(): void {
     this.outcomeTimer?.remove();
     this.outcomeTimer = null;
-    this.physics.resume();
+    this.snapshotTimer?.remove();
+    this.snapshotTimer = null;
+
+    this.session?.detachCallbacks();
 
     this.scene.stop(SceneKeys.Hud);
     this.inputSystem.destroy();

@@ -1,5 +1,6 @@
 export const SceneKeys = {
-  Start: 'StartScene',
+  Lobby: 'LobbyScene',
   Arena: 'ArenaScene',
+  GuestArena: 'GuestArenaScene',
   Hud: 'HudScene',
 } as const;

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ARENA } from '../config/gameplayConfig';
+import type { PlayerId } from '../config/controls';
 import type { TurretSkillDefinition } from '../config/skills';
 import { Turret } from '../entities/Turret';
 import type { ProjectileSpawn } from '../types/combat';
@@ -9,6 +10,14 @@ import {
   type SkillModifiers,
   type SkillUpdateContext,
 } from './Skill';
+
+export interface TurretRenderState {
+  ownerId: PlayerId;
+  x: number;
+  y: number;
+  rotation: number;
+  alpha: number;
+}
 
 export class TurretSkill extends Skill {
   private turret: Turret | null = null;
@@ -47,6 +56,22 @@ export class TurretSkill extends Skill {
 
   override get activeRatio(): number {
     return this.turret?.activeRatio ?? 0;
+  }
+
+  get renderState(): TurretRenderState | null {
+    const turret = this.turret;
+
+    if (!turret) {
+      return null;
+    }
+
+    return {
+      ownerId: turret.ownerId,
+      x: turret.x,
+      y: turret.y,
+      rotation: turret.rotation,
+      alpha: turret.alpha,
+    };
   }
 
   protected override cast(context: SkillCastContext): void {

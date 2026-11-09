@@ -18,6 +18,7 @@ export class Projectile extends Phaser.Physics.Arcade.Image {
   sourceId: string;
   damage: number;
   reflectionCount = 0;
+  netId = 0;
 
   private reflectLockRemaining = 0;
 

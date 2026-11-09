@@ -77,4 +77,5 @@ export interface HudModel {
   boss: BossHudState | null;
   debug: DebugSnapshot;
   outcome: Outcome | null;
+  resultHint: string;
 }

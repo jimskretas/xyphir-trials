@@ -1,61 +1,100 @@
 # Xyphir Trials
 
-A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite.
+A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite. It runs entirely in the browser and supports online two-player co-op through a free Supabase Realtime room relay, so it can be hosted on GitHub Pages with no game server of its own.
 
-This repository currently contains the complete local co-op MVP: a title screen leads into a run where two keyboard-controlled players fight a grunt wave before the Xyphir Warden boss, using fireballs and directional shields to survive and reflect projectiles. Victory, defeat, restart and return-to-title are all in place.
+A lobby lets you create a room and share a 5-character code, join a friend's room, or start a solo run. Once the host starts, both players fight a grunt wave and then the Xyphir Warden boss using fireballs, directional shields, dashes and a deployable turret.
 
 ## Requirements
 
 - Node.js 22.12+ (Vite 8 requirement)
 - npm 10+
+- A free Supabase project for online play (optional for local development)
 
-## Run
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (normally `http://localhost:5173`). Press `Enter` or `Space` on the title screen to begin.
+Open the URL printed by Vite (normally `http://localhost:5173`).
 
-## Objective
+### Local two-tab testing without Supabase
 
-Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates an aimed three-bolt burst with a radial nova and becomes more aggressive below half health. Survive with both players to win; the run ends in defeat when both players are down.
+When no Supabase credentials are present, **development builds automatically use a same-browser `BroadcastChannel` transport**. Open two tabs on the same machine, create a room in one, and join the code in the other. This exercises the real lobby, handshake, input and snapshot paths without a project or account.
+
+You can force the local transport even when credentials exist by adding `?transport=local` to the URL.
+
+Production builds always require Supabase credentials; the local transport is never bundled as a production fallback in practice, and the lobby will explain that multiplayer is not configured.
 
 ## Controls
 
-Both players share the same keyboard. No mouse is required.
-
-| Player | Movement | Fireball | Shield | Dash | Auto fire | Skill |
-| --- | --- | --- | --- | --- | --- | --- |
-| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` | `Q` | `E` (Turret) |
-| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` | Numpad `5` | — |
+Online, each player uses the same keyboard layout on their own machine. Keyboard only; no mouse is required.
 
 | Input | Action |
 | --- | --- |
-| `Enter` / `Space` | Start the run from the title screen |
-| `R` | Restart after victory or defeat |
-| `Esc` | Return to the title after victory or defeat |
-| `` ` `` | Toggle debug overlay |
+| `W` `A` `S` `D` | Move |
+| `F` | Fireball |
+| `G` | Shield (face a projectile to reflect it) |
+| `Space` | Dash |
+| `Q` | Toggle auto-fire |
+| `E` | Deploy turret |
+| `R` | Restart after a result (guest requests a restart) |
+| `Esc` | Leave the room / return to the lobby |
+| `` ` `` | Toggle debug overlay in development |
 
-Both abilities and the dash are implemented. Facing follows the last movement direction; fireballs and shields both use that facing. Dash uses the held movement direction, or the current facing when standing still.
+Both players have the turret skill. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. Casting again while ready replaces the previous turret, so each player can only have one active at a time.
 
-While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Projectiles are not consumed on contact; arena walls still stop the dash.
+Facing follows the last movement direction. Dash uses the held movement direction, or the current facing when standing still. While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 
-Auto fire is a per-player toggle. While it is on, that player keeps firing in their current facing direction whenever the fireball cooldown is ready, so you can concentrate on movement, shields or the other player. The HUD shows `AUTO FIRE` with an `ON`/`OFF` state for each player.
+## Objective
 
-P1 also has the Turret skill on `E`. It deploys a turret in front of the player that lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. Casting again while the cooldown is ready destroys the previous turret and places a new one, so P1 can only have one turret active at a time. The HUD shows the turret's `READY`/`ACTIVE`/`COOL` state and remaining duration.
+Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates an aimed three-bolt burst with a radial nova and becomes more aggressive below half health. The run ends in victory when the boss falls, and in defeat when every player is down.
 
-## Debugging
+## Online architecture
 
-In development builds the debug overlay is visible by default and `` ` `` toggles it.
+- **Transport:** Supabase Realtime Broadcast on a public channel named `xyphir-room-<code>`. There are no database tables, no auth and no edge functions.
+- **Host-authoritative:** the host simulates players, enemies, projectiles, skills and outcomes. The guest sends input and renders snapshots. The guest never runs gameplay physics.
+- **Rates:** the host broadcasts snapshots at 20 Hz; the guest sends input at about 15 Hz. The guest interpolates between snapshots with a ~90 ms delay.
+- **Lobby-only:** players must join before the run starts. There is no mid-run join. Starting solo closes the room and starts a P1-only run.
+- **Disconnects:** if the guest leaves mid-run, the host returns to the lobby with the room still open. If the host leaves, the guest returns to the lobby with a message.
+- **Security:** the room code is the only access control. Public broadcast channels are intentionally unauthenticated; every incoming message is validated as untrusted input.
 
-| Input | Action |
+### Supabase free-tier notes
+
+The free plan is enough for a two-player room:
+
+| Limit | Free tier |
 | --- | --- |
-| `H` | Deal 25 test damage to P1 |
-| Numpad `3` | Deal 25 test damage to P2 |
+| Concurrent connections | 200 |
+| Messages | 2 million per month |
+| Messages per second | 100 |
+| Payload size | 256 KB |
 
-Test damage keys are compiled out of production behavior by the `DEBUG.enabled` check.
+A run uses roughly 70–80 events per second, well inside the per-second limit and far below the monthly message budget for casual play. Supabase pauses free projects after **7 days of inactivity**; open the dashboard or play a round to wake it if the room refuses to connect.
+
+## Deploy to GitHub Pages
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In **Project Settings → API**, copy the project URL and the `anon` public key.
+3. In the GitHub repository, add two Actions secrets:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+5. Push to `main`. The workflow in `.github/workflows/deploy.yml` builds with those secrets and publishes `dist/`.
+
+`vite.config.ts` uses a relative `base`, so the same build works at `https://<user>.github.io/<repo>/` without editing the repository name.
+
+For local production testing:
+
+```bash
+cp .env.example .env
+# fill in the two values
+npm run build
+npm run preview
+```
+
+The Supabase anon key is designed to be public in client code. Access control for this game does not depend on keeping it secret; it only identifies the project.
 
 ## Scripts
 
@@ -72,9 +111,19 @@ Test damage keys are compiled out of production behavior by the `DEBUG.enabled` 
 src/
   main.ts                 Game bootstrap (Phaser.Game + Vite HMR cleanup)
   style.css               Page/canvas layout
+  net/
+    config.ts             Supabase env reading and dev local fallback
+    createRoom.ts         Transport/session factories for host and guest
+    LocalTransport.ts     BroadcastChannel transport for two-tab dev testing
+    roomCode.ts           Room-code and peer-ID generation
+    RoomSession.ts        Lobby handshake, routing, restart and disconnect logic
+    session.ts            Active room-session singleton
+    SupabaseTransport.ts  Realtime Broadcast + Presence transport
+    types.ts              Wire messages, input frames and snapshots
+    wire.ts               Untrusted envelope validation
   game/
-    config/               Game config, gameplay tuning, controls, scene keys, palette
-    scenes/               StartScene (title), ArenaScene (orchestration), HudScene (screen-space UI)
+    config/               Game config, tuning, controls, scene keys, palette
+    scenes/               LobbyScene, ArenaScene (host), GuestArenaScene, HudScene
     entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret
     components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
@@ -88,25 +137,29 @@ src/
 
 ### Architectural notes
 
-- `StartScene` is the boot scene. It explains the controls and starts `ArenaScene`; the arena launches `HudScene` in parallel and stops it on shutdown.
-- Result input lives in `ArenaScene`: `R` restarts the scene and `Esc` returns to `StartScene`, so normal scene shutdown does all gameplay cleanup.
-- Gameplay is composed from small components. `Player` is a thin Arcade sprite that owns a `MovementComponent` and a `FacingComponent`; it does not contain input, camera or world logic.
-- Facing follows the last non-zero movement direction and persists when the player stops.
-- All key bindings live in `config/controls.ts` so both players share one input map.
-- `InputSystem` reads both players once per frame and exposes normalized intent to the scene.
+- `LobbyScene` is the boot scene. It creates or joins a room through `createRoom.ts`, then starts `ArenaScene` for the host or `GuestArenaScene` for the guest.
+- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, boss state and the telegraph.
+- `GuestArenaScene` has no gameplay physics. It sends local input, buffers snapshots, interpolates entity transforms, and drives the same HUD and result overlay as the host.
+- `RoomSession` is transport-agnostic. It handles join retries, welcome/rejection, start/restart messages, presence, disconnects, and SFX forwarding. `SupabaseTransport` and `LocalTransport` share one small interface.
+- Scene restarts during a run preserve the room session. Only explicit leave/cancel closes it, so asking for a rematch does not drop the connection.
+- Gameplay is composed from small components. `Player` is a thin Arcade sprite that owns movement and facing components and exposes ability state; it does not contain input, camera or world logic.
+- All key bindings live in `config/controls.ts`. Online sessions use the same profile for both players because each player has their own keyboard.
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
-- Projectiles carry team, current owner and original source IDs. The projectile system handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
-- `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
-- `DashComponent` owns dash duration, cooldown and fixed velocity. `Player` decides the dash direction and damage immunity; `ArenaScene` skips player and projectile collisions while the dash is active.
-- Auto fire is a boolean on `Player`. `ArenaScene` toggles it from the player's key and calls the same `tryFire()` path as manual fire each frame while enabled, so both share the fireball cooldown.
-- Skills are separate from `Player` and live in `ArenaScene`'s per-player skill list. `Skill` owns cooldown, cast gating and a multiplicative `SkillModifiers` record; concrete skills such as `TurretSkill` consume those modifiers when they create their entities. This keeps future buffs, elemental variants and upgraded turrets out of the player and scene code.
-- A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
-- Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
-- `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.
-- `SfxSystem` synthesises all sound effects with Web Audio oscillators and noise. The audio context is created and resumed only when the player starts a run, satisfying browser autoplay rules.
-- Projectile damage rules live in the scene: player-team projectiles hit enemies, enemy-team projectiles hit players, and same-team hits are ignored.
+- Projectiles carry team, current owner and original source IDs. The projectile system assigns stable net IDs and handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
+- `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup, and exposes telegraph render state for snapshots. Bullet damage is tuned per team in `config/combatTuning.ts`.
+- `SfxSystem` synthesises all sound effects with Web Audio oscillators and noise. The audio context is created and resumed on the first lobby keypress, satisfying browser autoplay rules. The host forwards sound events to the guest.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.
-- `ArenaScene` only wires the pieces together and updates them in order.
-- Placeholder art is generated at runtime as textures, so there are no binary assets yet.
+- Placeholder art is generated at runtime as textures, so there are no binary assets.
 - The arena (1920 × 1280) is larger than the 1280 × 720 viewport so camera follow is visible.
+
+## Debugging
+
+In development builds the debug overlay is visible by default and `` ` `` toggles it.
+
+| Input | Action |
+| --- | --- |
+| `H` | Deal 25 test damage to P1 |
+| Numpad `3` | Deal 25 test damage to P2 |
+
+Test damage keys are compiled out of production behavior by the `DEBUG.enabled` check.

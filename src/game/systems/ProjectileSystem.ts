@@ -7,6 +7,7 @@ export class ProjectileSystem {
 
   private readonly live = new Set<Projectile>();
   private readonly scene: Phaser.Scene;
+  private nextNetId = 1;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -16,10 +17,17 @@ export class ProjectileSystem {
   spawn(spawn: ProjectileSpawn): Projectile {
     const projectile = new Projectile(this.scene, spawn);
 
+    projectile.netId = this.nextNetId;
+    this.nextNetId += 1;
+
     this.group.add(projectile);
     this.live.add(projectile);
 
     return projectile;
+  }
+
+  get liveProjectiles(): readonly Projectile[] {
+    return [...this.live];
   }
 
   update(deltaMs: number): void {

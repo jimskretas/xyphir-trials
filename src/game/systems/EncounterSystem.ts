@@ -6,6 +6,7 @@ import { Grunt } from '../entities/Grunt';
 import type { EnemyBase } from '../entities/EnemyBase';
 import type { Player } from '../entities/Player';
 import { sfx } from './SfxSystem';
+import type { SfxName } from './SfxSystem';
 import type { ProjectileSpawn } from '../types/combat';
 
 export type EncounterPhase =
@@ -13,6 +14,13 @@ export type EncounterPhase =
   | 'bossTelegraph'
   | 'boss'
   | 'cleared';
+
+export interface TelegraphState {
+  x: number;
+  y: number;
+  radius: number;
+  progress: number;
+}
 
 export const GRUNT_SPAWN_POINTS = [
   { x: 480, y: 360 },
@@ -27,12 +35,15 @@ const BOSS_SPAWN = {
 } as const;
 
 const TELEGRAPH_COLOR = 0xf472b6;
+const TELEGRAPH_BASE_RADIUS = 26;
+const TELEGRAPH_GROWTH_RADIUS = 110;
 
 export class EncounterSystem {
   readonly group: Phaser.GameObjects.Group;
 
   private readonly grunts: Grunt[] = [];
   private readonly scene: Phaser.Scene;
+  private readonly onSfx: ((name: SfxName) => void) | null;
   private boss: Boss | null = null;
   private bossSpawned = false;
   private bossTelegraph: Phaser.GameObjects.Graphics | null = null;
@@ -40,13 +51,36 @@ export class EncounterSystem {
   private currentPhase: EncounterPhase = 'grunts';
   private nextId = 1;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(
+    scene: Phaser.Scene,
+    onSfx: ((name: SfxName) => void) | null = null,
+  ) {
     this.scene = scene;
+    this.onSfx = onSfx;
     this.group = scene.add.group();
   }
 
   get phase(): EncounterPhase {
     return this.currentPhase;
+  }
+
+  get telegraphState(): TelegraphState | null {
+    if (this.currentPhase !== 'bossTelegraph') {
+      return null;
+    }
+
+    const progress = Phaser.Math.Clamp(
+      1 - this.bossTelegraphRemainingMs / BOSS.spawnTelegraphMs,
+      0,
+      1,
+    );
+
+    return {
+      x: BOSS_SPAWN.x,
+      y: BOSS_SPAWN.y,
+      radius: TELEGRAPH_BASE_RADIUS + progress * TELEGRAPH_GROWTH_RADIUS,
+      progress,
+    };
   }
 
   get activeBoss(): Boss | null {
@@ -181,7 +215,7 @@ export class EncounterSystem {
       return;
     }
 
-    const radius = 26 + progress * 110;
+    const radius = TELEGRAPH_BASE_RADIUS + progress * TELEGRAPH_GROWTH_RADIUS;
     const graphics = this.bossTelegraph;
 
     graphics.clear();
@@ -201,8 +235,17 @@ export class EncounterSystem {
     this.bossSpawned = true;
     this.group.add(this.boss);
     this.currentPhase = 'boss';
-    sfx.play('bossSpawn');
+    this.playSfx('bossSpawn');
     this.scene.cameras.main.shake(250, 0.006);
+  }
+
+  private playSfx(name: SfxName): void {
+    if (this.onSfx) {
+      this.onSfx(name);
+      return;
+    }
+
+    sfx.play(name);
   }
 
   private spawnGrunt(x: number, y: number): void {

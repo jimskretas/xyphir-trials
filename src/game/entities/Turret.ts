@@ -87,6 +87,10 @@ export class Turret extends Phaser.GameObjects.Image {
     return this.remainingMs <= 0;
   }
 
+  get ownerId(): PlayerId {
+    return this.stats.ownerId;
+  }
+
   get activeRatio(): number {
     return this.stats.durationMs > 0
       ? this.remainingMs / this.stats.durationMs
