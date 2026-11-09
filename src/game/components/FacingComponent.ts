@@ -17,11 +17,15 @@ export class FacingComponent {
   }
 
   update(input: MovementInput): void {
-    if (input.x === 0 && input.y === 0) {
+    this.setDirection(input.x, input.y);
+  }
+
+  setDirection(x: number, y: number): void {
+    if (x === 0 && y === 0) {
       return;
     }
 
-    this.direction.set(input.x, input.y).normalize();
+    this.direction.set(x, y).normalize();
     this.host.rotation = this.direction.angle();
   }
 

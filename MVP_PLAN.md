@@ -1001,6 +1001,28 @@ After each milestone: run typecheck, run the production build, manually test the
 
 ---
 
+## 4a. Post-MVP — Dash ability
+
+**Status:** Complete
+
+**Objective:** Give each player a short, high-speed dash that grants damage immunity and lets them phase through projectiles, enemies and their partner without destroying anything.
+
+**Implemented:**
+
+- `DashComponent` owns the active duration, fixed dash velocity, cooldown and active ratio.
+- `DASH` tuning in `config/gameplayConfig.ts`: `durationMs: 180`, `speed: 950`, `cooldownMs: 850`, `alphaWhileDashing: 0.55`.
+- Bindings: P1 `Space`, P2 Numpad `0`, centralised in `config/controls.ts`.
+- `Player.tryDash()` uses the current held movement direction, falling back to facing, and updates facing to the dash direction.
+- `Player.takeDamage()` ignores damage while dashing, and horizontal movement input is suspended for the dash duration.
+- `ArenaScene` disables player-player and player-enemy collision while either party is dashing, and the player-projectile overlap handler returns early so projectiles pass through without being removed.
+- Arena walls remain solid during the dash so players cannot leave the arena.
+- Dash appears as a third HUD ability column (`FIRE`, `SHIELD`, `DASH`) with READY/ACTIVE/COOL states, plus title-screen and debug-hint control labels.
+- A synthesised dash sound is played on activation.
+
+**Verification:** Typecheck and production build pass. Gameplay behaviour was tested in the browser by the user.
+
+---
+
 ## 5. Testing protocol used for every milestone
 
 1. Review the current Git status and relevant existing files.

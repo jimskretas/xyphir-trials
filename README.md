@@ -26,10 +26,10 @@ Clear the opening grunt wave, then defeat the Xyphir Warden. The boss alternates
 
 Both players share the same keyboard. No mouse is required.
 
-| Player | Movement | Fireball | Shield |
-| --- | --- | --- | --- |
-| P1 | `W` `A` `S` `D` | `F` | `G` |
-| P2 | Arrow keys | Numpad `1` | Numpad `2` |
+| Player | Movement | Fireball | Shield | Dash |
+| --- | --- | --- | --- | --- |
+| P1 | `W` `A` `S` `D` | `F` | `G` | `Space` |
+| P2 | Arrow keys | Numpad `1` | Numpad `2` | Numpad `0` |
 
 | Input | Action |
 | --- | --- |
@@ -38,7 +38,9 @@ Both players share the same keyboard. No mouse is required.
 | `Esc` | Return to the title after victory or defeat |
 | `` ` `` | Toggle debug overlay |
 
-Both abilities are implemented. Facing follows the last movement direction; fireballs and shields both use that facing.
+Both abilities and the dash are implemented. Facing follows the last movement direction; fireballs and shields both use that facing. Dash uses the held movement direction, or the current facing when standing still.
+
+While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Projectiles are not consumed on contact; arena walls still stop the dash.
 
 ## Debugging
 
@@ -70,7 +72,7 @@ src/
     config/               Game config, gameplay tuning, controls, scene keys, palette
     scenes/               StartScene (title), ArenaScene (orchestration), HudScene (screen-space UI)
     entities/             Player, Projectile, EnemyBase, Grunt, Boss
-    components/           Movement, Facing, Health, Cooldown, Shield
+    components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
@@ -91,6 +93,7 @@ src/
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
 - Projectiles carry team, current owner and original source IDs. The projectile system handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
 - `ShieldComponent` owns activation duration, cooldown, arc check and flash state; `Player` only draws the arc and forwards activation. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
+- `DashComponent` owns dash duration, cooldown and fixed velocity. `Player` decides the dash direction and damage immunity; `ArenaScene` skips player and projectile collisions while the dash is active.
 - A reflected projectile keeps its original source, switches team/owner to the reflector, takes the reflector's facing direction, applies the ally or enemy reflection multiplier, and is repositioned outside the reflector with a short reflection lock.
 - Enemy behaviour lives behind `EnemyBase` and `EncounterSystem`. `EnemyBase` provides shared health, targeting, steering and death handling; `Grunt` and `Boss` supply only their AI behaviour.
 - `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup. Bullet damage is tuned per team in `config/combatTuning.ts`.

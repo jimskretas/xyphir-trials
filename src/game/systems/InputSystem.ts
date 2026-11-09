@@ -6,6 +6,7 @@ export interface PlayerInputState {
   movement: Phaser.Math.Vector2;
   fireball: boolean;
   shield: boolean;
+  dash: boolean;
 }
 
 interface PlayerKeys {
@@ -15,6 +16,7 @@ interface PlayerKeys {
   right: Phaser.Input.Keyboard.Key;
   fireball: Phaser.Input.Keyboard.Key;
   shield: Phaser.Input.Keyboard.Key;
+  dash: Phaser.Input.Keyboard.Key;
 }
 
 export class InputSystem {
@@ -38,12 +40,14 @@ export class InputSystem {
         right: keyboard.addKey(binding.right),
         fireball: keyboard.addKey(binding.fireball),
         shield: keyboard.addKey(binding.shield),
+        dash: keyboard.addKey(binding.dash),
       });
 
       this.states.set(id, {
         movement: new Phaser.Math.Vector2(),
         fireball: false,
         shield: false,
+        dash: false,
       });
     }
   }
@@ -63,6 +67,7 @@ export class InputSystem {
       );
       state.fireball = Phaser.Input.Keyboard.JustDown(keys.fireball);
       state.shield = Phaser.Input.Keyboard.JustDown(keys.shield);
+      state.dash = Phaser.Input.Keyboard.JustDown(keys.dash);
     }
   }
 

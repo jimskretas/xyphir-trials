@@ -8,9 +8,9 @@ const PANEL_WIDTH = 260;
 const PANEL_HEIGHT = 104;
 const BAR_WIDTH = 236;
 const BAR_HEIGHT = 10;
-const ABILITY_WIDTH = 112;
+const ABILITY_WIDTH = 72;
 const ABILITY_HEIGHT = 8;
-const ABILITY_GAP = 12;
+const ABILITY_GAP = 10;
 const MARGIN = 24;
 
 export class PlayerHudPanel {
@@ -20,6 +20,7 @@ export class PlayerHudPanel {
   private readonly healthText: Phaser.GameObjects.Text;
   private readonly fireballText: Phaser.GameObjects.Text;
   private readonly shieldText: Phaser.GameObjects.Text;
+  private readonly dashText: Phaser.GameObjects.Text;
   private readonly color: number;
 
   constructor(
@@ -52,10 +53,10 @@ export class PlayerHudPanel {
     const controlsText = scene.add.text(
       12,
       84,
-      `${controls.movementLabel} move   ${controls.abilityLabel} abilities`,
+      `${controls.movementLabel} · ${controls.abilityLabel} · ${controls.dashLabel} dash`,
       {
         fontFamily: 'Consolas, "Courier New", monospace',
-        fontSize: '11px',
+        fontSize: '10px',
         color: '#6b7d92',
       },
     );
@@ -70,7 +71,7 @@ export class PlayerHudPanel {
 
     this.fireballText = scene.add.text(12, 52, '', {
       fontFamily: 'Consolas, "Courier New", monospace',
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#f97316',
     });
 
@@ -80,8 +81,19 @@ export class PlayerHudPanel {
       '',
       {
         fontFamily: 'Consolas, "Courier New", monospace',
-        fontSize: '10px',
+        fontSize: '9px',
         color: toCssColor(this.color),
+      },
+    );
+
+    this.dashText = scene.add.text(
+      12 + (ABILITY_WIDTH + ABILITY_GAP) * 2,
+      52,
+      '',
+      {
+        fontFamily: 'Consolas, "Courier New", monospace',
+        fontSize: '9px',
+        color: '#a78bfa',
       },
     );
 
@@ -94,6 +106,7 @@ export class PlayerHudPanel {
         this.healthText,
         this.fireballText,
         this.shieldText,
+        this.dashText,
         controlsText,
       ])
       .setDepth(1000);
@@ -148,7 +161,7 @@ export class PlayerHudPanel {
       state.fireball,
       0xf97316,
       this.fireballText,
-      'FIREBALL',
+      'FIRE',
     );
     this.drawAbility(
       12 + ABILITY_WIDTH + ABILITY_GAP,
@@ -156,6 +169,13 @@ export class PlayerHudPanel {
       this.color,
       this.shieldText,
       'SHIELD',
+    );
+    this.drawAbility(
+      12 + (ABILITY_WIDTH + ABILITY_GAP) * 2,
+      state.dash,
+      0xa78bfa,
+      this.dashText,
+      'DASH',
     );
   }
 
@@ -199,11 +219,7 @@ export class PlayerHudPanel {
     }
 
     label.setText(
-      ability.active
-        ? `${name} ACTIVE`
-        : ability.ready
-          ? `${name} READY`
-          : name,
+      ability.active ? `${name} ACTIVE` : ability.ready ? `${name} READY` : `${name} COOL`,
     );
     label.setColor(
       ability.active

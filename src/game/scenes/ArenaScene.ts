@@ -61,7 +61,13 @@ export class ArenaScene extends Phaser.Scene {
     this.players = this.createPlayers();
 
     this.physics.add.collider(this.players, this.arena.walls);
-    this.physics.add.collider(this.players[0], this.players[1]);
+    this.physics.add.collider(
+      this.players[0],
+      this.players[1],
+      undefined,
+      this.shouldPlayersCollide,
+      this,
+    );
 
     this.projectileSystem = new ProjectileSystem(this);
     this.physics.add.collider(
@@ -82,7 +88,13 @@ export class ArenaScene extends Phaser.Scene {
       this.encounterSystem.group,
       this.encounterSystem.group,
     );
-    this.physics.add.collider(this.players, this.encounterSystem.group);
+    this.physics.add.collider(
+      this.players,
+      this.encounterSystem.group,
+      undefined,
+      this.shouldPlayerCollideWithEnemy,
+      this,
+    );
 
     this.physics.add.overlap(
       this.projectileSystem.group,
@@ -151,6 +163,10 @@ export class ArenaScene extends Phaser.Scene {
 
       if (input.shield && player.tryShield()) {
         sfx.play('shield');
+      }
+
+      if (input.dash && player.tryDash(input.movement)) {
+        sfx.play('dash');
       }
     }
 
@@ -224,6 +240,10 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     if (!this.projectileSystem.has(projectile)) {
+      return;
+    }
+
+    if (player.isDashing) {
       return;
     }
 
@@ -319,6 +339,24 @@ export class ArenaScene extends Phaser.Scene {
     return object2 instanceof Player ? object2 : null;
   }
 
+  private shouldPlayersCollide(
+    object1: ArcadeCollisionObject,
+    object2: ArcadeCollisionObject,
+  ): boolean {
+    return !(
+      (object1 instanceof Player && object1.isDashing) ||
+      (object2 instanceof Player && object2.isDashing)
+    );
+  }
+
+  private shouldPlayerCollideWithEnemy(
+    object1: ArcadeCollisionObject,
+    object2: ArcadeCollisionObject,
+  ): boolean {
+    const player = this.asPlayer(object1, object2);
+    return !player || !player.isDashing;
+  }
+
   private setupDebugDamageKeys(): void {
     if (!DEBUG.enabled) {
       return;
@@ -383,6 +421,14 @@ export class ArenaScene extends Phaser.Scene {
         state.shield.ratio = player.shield.isActive
           ? player.shield.activeRatio
           : player.shield.cooldown.readyRatio;
+      }
+
+      if (state.dash) {
+        state.dash.active = player.dash.isDashing;
+        state.dash.ready = player.dash.cooldown.isReady;
+        state.dash.ratio = player.dash.isDashing
+          ? player.dash.activeRatio
+          : player.dash.cooldown.readyRatio;
       }
     }
   }
@@ -480,6 +526,7 @@ export class ArenaScene extends Phaser.Scene {
         health: player.health.current,
         maxHealth: player.health.maxHealth,
         downed: !player.isAlive,
+        dashing: player.isDashing,
         blocked: player.body.blocked,
       })),
       enemies: this.encounterSystem.aliveCount,

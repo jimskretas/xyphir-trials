@@ -15,6 +15,7 @@ export interface PlayerHudState {
   downed: boolean;
   fireball: AbilityHudState | null;
   shield: AbilityHudState | null;
+  dash: AbilityHudState | null;
 }
 
 export interface BossHudState {
@@ -44,6 +45,7 @@ export interface PlayerDebugSnapshot {
   health: number;
   maxHealth: number;
   downed: boolean;
+  dashing: boolean;
   blocked: BlockedState;
 }
 

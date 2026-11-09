@@ -19,6 +19,13 @@ export const PLAYER = {
   damageFlashMs: 120,
 } as const;
 
+export const DASH = {
+  durationMs: 180,
+  speed: 950,
+  cooldownMs: 850,
+  alphaWhileDashing: 0.55,
+} as const;
+
 export const CAMERA = {
   followLerp: 0.12,
   zoomLerp: 0.1,

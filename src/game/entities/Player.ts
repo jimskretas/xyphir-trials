@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { FIREBALL, SHIELD } from '../config/combatConfig';
-import { PLAYER } from '../config/gameplayConfig';
+import { DASH, PLAYER } from '../config/gameplayConfig';
 import type { PlayerId } from '../config/controls';
 import { COLORS } from '../config/theme';
 import { FireballAbility } from '../abilities/FireballAbility';
+import { DashComponent } from '../components/DashComponent';
 import { FacingComponent } from '../components/FacingComponent';
 import { HealthComponent } from '../components/HealthComponent';
 import { MovementComponent } from '../components/MovementComponent';
@@ -33,6 +34,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     PLAYER.invulnerabilityMs,
   );
   readonly fireball = new FireballAbility();
+  readonly dash = new DashComponent(
+    this,
+    DASH.durationMs,
+    DASH.speed,
+    DASH.cooldownMs,
+  );
   readonly shield = new ShieldComponent(
     SHIELD.durationMs,
     SHIELD.cooldownMs,
@@ -74,14 +81,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.fireball.update(deltaMs);
     this.health.update(deltaMs);
     this.shield.update(deltaMs);
+    this.dash.update(deltaMs);
 
     if (!this.health.isAlive) {
+      this.dash.cancel();
       this.movement.stop();
       this.shield.cancel();
       this.drawShield();
       return;
     }
 
+    if (this.dash.isDashing) {
+      this.setAlpha(DASH.alphaWhileDashing);
+      this.drawShield();
+      return;
+    }
+
+    this.setAlpha(1);
     this.movement.update(input);
     this.facing.update(input);
     this.drawShield();
@@ -114,11 +130,33 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
+  tryDash(input: MovementInput): boolean {
+    if (!this.health.isAlive || this.dash.isDashing) {
+      return false;
+    }
+
+    const direction =
+      input.x === 0 && input.y === 0
+        ? this.facing.direction.clone()
+        : new Phaser.Math.Vector2(input.x, input.y);
+
+    if (!this.dash.tryStart(direction)) {
+      return false;
+    }
+
+    this.facing.setDirection(direction.x, direction.y);
+    return true;
+  }
+
   flashShield(): void {
     this.shield.flash(SHIELD.flashMs);
   }
 
   takeDamage(amount: number): boolean {
+    if (this.dash.isDashing) {
+      return false;
+    }
+
     const applied = this.health.damage(amount);
 
     if (applied <= 0) {
@@ -136,6 +174,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   get isAlive(): boolean {
     return this.health.isAlive;
+  }
+
+  get isDashing(): boolean {
+    return this.dash.isDashing;
   }
 
   get movementDirection(): Phaser.Math.Vector2 {

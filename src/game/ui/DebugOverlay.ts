@@ -5,8 +5,8 @@ import { UI_COLORS } from '../config/theme';
 import type { DebugSnapshot } from './HudModel';
 
 const HINT_TEXT = [
-  `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}  ${PLAYER_CONTROLS.p1.abilityLabel}`,
-  `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}  ${PLAYER_CONTROLS.p2.abilityLabel}`,
+  `${PLAYER_CONTROLS.p1.label} ${PLAYER_CONTROLS.p1.movementLabel}  ${PLAYER_CONTROLS.p1.abilityLabel}  ${PLAYER_CONTROLS.p1.dashLabel} dash`,
+  `${PLAYER_CONTROLS.p2.label} ${PLAYER_CONTROLS.p2.movementLabel}  ${PLAYER_CONTROLS.p2.abilityLabel}  ${PLAYER_CONTROLS.p2.dashLabel} dash`,
   '` Debug',
 ].join('  ·  ');
 

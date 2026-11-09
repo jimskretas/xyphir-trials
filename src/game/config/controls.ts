@@ -11,6 +11,7 @@ export interface PlayerBinding {
   right: number;
   fireball: number;
   shield: number;
+  dash: number;
 }
 
 export interface PlayerControls {
@@ -18,6 +19,7 @@ export interface PlayerControls {
   movementLabel: string;
   fireballLabel: string;
   shieldLabel: string;
+  dashLabel: string;
   abilityLabel: string;
   binding: PlayerBinding;
 }
@@ -30,6 +32,7 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
     movementLabel: 'WASD',
     fireballLabel: 'F',
     shieldLabel: 'G',
+    dashLabel: 'Space',
     abilityLabel: 'F / G',
     binding: {
       up: KeyCodes.W,
@@ -38,6 +41,7 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
       right: KeyCodes.D,
       fireball: KeyCodes.F,
       shield: KeyCodes.G,
+      dash: KeyCodes.SPACE,
     },
   },
   p2: {
@@ -45,6 +49,7 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
     movementLabel: 'Arrows',
     fireballLabel: 'Num 1',
     shieldLabel: 'Num 2',
+    dashLabel: 'Num 0',
     abilityLabel: 'Num 1 / 2',
     binding: {
       up: KeyCodes.UP,
@@ -53,6 +58,7 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
       right: KeyCodes.RIGHT,
       fireball: KeyCodes.NUMPAD_ONE,
       shield: KeyCodes.NUMPAD_TWO,
+      dash: KeyCodes.NUMPAD_ZERO,
     },
   },
 };

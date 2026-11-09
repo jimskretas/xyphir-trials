@@ -22,5 +22,11 @@ export function createPlayerHudState(id: PlayerId): PlayerHudState {
       active: false,
       ratio: 1,
     },
+    dash: {
+      label: 'DASH',
+      ready: true,
+      active: false,
+      ratio: 1,
+    },
   };
 }
