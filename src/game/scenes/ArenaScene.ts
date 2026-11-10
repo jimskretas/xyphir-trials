@@ -755,11 +755,11 @@ export class ArenaScene extends Phaser.Scene {
 
     this.debugDamageKeys = [
       {
-        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H),
+        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
         playerId: 'p1',
       },
       {
-        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_THREE),
+        key: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
         playerId: 'p2',
       },
     ];

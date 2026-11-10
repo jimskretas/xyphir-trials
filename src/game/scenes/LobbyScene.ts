@@ -550,7 +550,7 @@ export class LobbyScene extends Phaser.Scene {
     this.addText(
       VIEWPORT.width / 2,
       y + 120,
-      'Both players use WASD to move, F / G to fight, Space to dash, Q to toggle auto-fire and E for the turret.',
+      'Both players move with the arrow keys, C / Q to fight, Space to dash, W for the turret and 1 for auto-fire.',
       12,
       UI_COLORS.startMuted,
     );
@@ -576,14 +576,14 @@ export class LobbyScene extends Phaser.Scene {
     this.addText(
       VIEWPORT.width / 2,
       y + 14,
-      'WASD  MOVE     F  FIREBALL     G  SHIELD     SPACE  DASH',
+      'ARROWS  MOVE     C  FIREBALL     Q  SHIELD     SPACE  DASH',
       13,
       UI_COLORS.startBody,
     );
     this.addText(
       VIEWPORT.width / 2,
       y + 40,
-      'Q  AUTO-FIRE     E  TURRET     R  RESTART AT RESULT     ESC  LEAVE',
+      'W  TURRET     R  RESTART AT RESULT     ESC  LEAVE',
       13,
       UI_COLORS.startBody,
     );

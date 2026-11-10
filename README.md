@@ -33,15 +33,16 @@ Online, each player uses the same keyboard layout on their own machine. Keyboard
 
 | Input | Action |
 | --- | --- |
-| `W` `A` `S` `D` | Move |
-| `F` | Fireball |
-| `G` | Shield (face a projectile to reflect it) |
+| Arrow keys | Move |
+| `C` | Fireball |
+| `Q` | Shield (face a projectile to reflect it) |
 | `Space` | Dash |
-| `Q` | Toggle auto-fire |
-| `E` | Deploy turret |
+| `W` | Deploy turret |
 | `R` | Restart after a result (guest requests a restart) |
 | `Esc` | Leave the room / return to the lobby |
 | `` ` `` | Toggle debug overlay in development |
+
+`E` and `R` are reserved for future active skills; `R` is contextual and still restarts from the result screen.
 
 Both players have the turret skill. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. Casting again while ready replaces the previous turret, so each player can only have one active at a time.
 
@@ -159,7 +160,8 @@ In development builds the debug overlay is visible by default and `` ` `` toggle
 
 | Input | Action |
 | --- | --- |
-| `H` | Deal 25 test damage to P1 |
-| Numpad `3` | Deal 25 test damage to P2 |
+| `1` | Toggle auto-fire |
+| `2` | Deal 25 test damage to P1 |
+| `3` | Deal 25 test damage to P2 |
 
-Test damage keys are compiled out of production behavior by the `DEBUG.enabled` check.
+Auto-fire is available in all builds; the test damage keys are gated by the `DEBUG.enabled` check.

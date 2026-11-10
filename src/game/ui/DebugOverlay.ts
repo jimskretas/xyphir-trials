@@ -99,7 +99,7 @@ export class DebugOverlay {
     }
 
     if (DEBUG.enabled) {
-      lines.push(`debug  H / Num 3 damage (${DEBUG.damageAmount})`);
+      lines.push(`debug  2 / 3 damage (${DEBUG.damageAmount})`);
     }
 
     lines.push(
