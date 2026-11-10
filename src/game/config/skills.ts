@@ -25,6 +25,16 @@ export interface WaveSkillDefinition extends SkillDefinition {
   damagePerTick: number;
 }
 
+export interface CloneSkillDefinition extends SkillDefinition {
+  durationMs: number;
+  healthFraction: number;
+  fireIntervalMs: number;
+  spawnOffset: number;
+  projectileOffset: number;
+  radius: number;
+  projectile: ProjectilePreset;
+}
+
 /**
  * Base turret. Elemental variants can reuse this shape and add their own
  * modifiers, textures and projectile presets later.
@@ -76,4 +86,29 @@ export const WAVE_SKILL: WaveSkillDefinition = {
   radius: 120,
   ticksPerSecond: 2,
   damagePerTick: 14,
+};
+
+/**
+ * Decoy that enemies can target. It fires toward its owner so the owner can
+ * reflect those shots back at enemies with the shield.
+ */
+export const CLONE_SKILL: CloneSkillDefinition = {
+  id: 'clone',
+  name: 'Clone',
+  description: 'Summons a decoy that draws fire and shoots at you.',
+  cooldownMs: 10000,
+  durationMs: 5000,
+  healthFraction: 1 / 3,
+  fireIntervalMs: 500,
+  spawnOffset: 120,
+  projectileOffset: 24,
+  radius: 18,
+  projectile: {
+    texture: TextureKeys.EnemyBolt,
+    speed: 340,
+    damage: 12,
+    radius: 5,
+    reflectable: true,
+    tint: 0xa5b4fc,
+  },
 };

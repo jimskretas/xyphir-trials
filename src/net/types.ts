@@ -100,6 +100,16 @@ export interface NetWaveState {
   alpha: number;
 }
 
+export interface NetCloneState {
+  ownerId: PlayerId;
+  x: number;
+  y: number;
+  rotation: number;
+  alpha: number;
+  health: number;
+  maxHealth: number;
+}
+
 export interface NetBossState {
   health: number;
   maxHealth: number;
@@ -122,6 +132,7 @@ export interface NetSnapshot {
   turrets: NetTurretState[];
   walls: NetWallState[];
   waves: NetWaveState[];
+  clones: NetCloneState[];
   boss: NetBossState | null;
   telegraph: NetTelegraphState | null;
   objective: string;

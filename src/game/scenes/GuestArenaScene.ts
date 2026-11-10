@@ -6,6 +6,7 @@ import { SceneKeys } from '../config/sceneKeys';
 import { COLORS } from '../config/theme';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import { TextureKeys } from '../resources/textureKeys';
+import { CLONE_TINT } from '../entities/Clone';
 import { CoopCamera } from '../systems/CoopCamera';
 import { InputSystem } from '../systems/InputSystem';
 import type { PlayerInputState } from '../systems/InputSystem';
@@ -16,6 +17,7 @@ import { Arena } from '../world/Arena';
 import { getRoomSession } from '../../net/session';
 import type { RoomSession } from '../../net/RoomSession';
 import type {
+  NetCloneState,
   NetEnemyState,
   NetPlayerState,
   NetProjectileState,
@@ -64,6 +66,8 @@ export class GuestArenaScene extends Phaser.Scene {
   private readonly turretSprites = new Map<PlayerId, Phaser.GameObjects.Image>();
   private readonly wallSprites = new Map<PlayerId, Phaser.GameObjects.Rectangle>();
   private readonly waveSprites = new Map<PlayerId, Phaser.GameObjects.Graphics>();
+  private readonly cloneSprites = new Map<PlayerId, Phaser.GameObjects.Image>();
+  private readonly cloneBars = new Map<PlayerId, Phaser.GameObjects.Graphics>();
   private readonly renderedPlayers = new Map<PlayerId, RenderedPoint>();
   private telegraph!: Phaser.GameObjects.Graphics;
 
@@ -182,6 +186,7 @@ export class GuestArenaScene extends Phaser.Scene {
     this.renderTurrets(before.snapshot.turrets, after.snapshot.turrets, t);
     this.renderWalls(before.snapshot.walls, after.snapshot.walls, t);
     this.renderWaves(before.snapshot.waves, after.snapshot.waves, t);
+    this.renderClones(before.snapshot.clones, after.snapshot.clones, t);
     this.renderTelegraph(after.snapshot.telegraph);
 
     const focus = [...this.renderedPlayers.values()];
@@ -539,6 +544,77 @@ export class GuestArenaScene extends Phaser.Scene {
     }
   }
 
+  private renderClones(
+    before: readonly NetCloneState[],
+    after: readonly NetCloneState[],
+    t: number,
+  ): void {
+    const seen = new Set<PlayerId>();
+
+    for (const state of after) {
+      seen.add(state.ownerId);
+
+      let sprite = this.cloneSprites.get(state.ownerId);
+
+      if (!sprite) {
+        sprite = this.add
+          .image(state.x, state.y, this.playerTexture(state.ownerId))
+          .setTint(CLONE_TINT)
+          .setDepth(9);
+        this.cloneSprites.set(state.ownerId, sprite);
+      }
+
+      let bar = this.cloneBars.get(state.ownerId);
+
+      if (!bar) {
+        bar = this.add.graphics().setDepth(12);
+        this.cloneBars.set(state.ownerId, bar);
+      }
+
+      const previous = before.find(
+        (candidate) => candidate.ownerId === state.ownerId,
+      );
+      const x = previous ? Phaser.Math.Linear(previous.x, state.x, t) : state.x;
+      const y = previous ? Phaser.Math.Linear(previous.y, state.y, t) : state.y;
+      const rotation = previous
+        ? this.lerpAngle(previous.rotation, state.rotation, t)
+        : state.rotation;
+
+      sprite.setPosition(x, y).setRotation(rotation).setAlpha(state.alpha);
+
+      const color =
+        state.ownerId === 'p1' ? COLORS.playerOne : COLORS.playerTwo;
+      const width = 48;
+      const height = 5;
+      const left = x - width / 2;
+      const top = y - sprite.height / 2 - 12;
+      const ratio =
+        state.maxHealth > 0 ? state.health / state.maxHealth : 0;
+
+      bar.clear();
+      bar.fillStyle(0x0b1220, 0.85);
+      bar.fillRect(left, top, width, height);
+      bar.fillStyle(color, 0.9);
+      bar.fillRect(left, top, Math.max(0, width * ratio), height);
+      bar.lineStyle(1, color, 0.7);
+      bar.strokeRect(left, top, width, height);
+    }
+
+    for (const [id, sprite] of this.cloneSprites) {
+      if (!seen.has(id)) {
+        sprite.destroy();
+        this.cloneSprites.delete(id);
+      }
+    }
+
+    for (const [id, bar] of this.cloneBars) {
+      if (!seen.has(id)) {
+        bar.destroy();
+        this.cloneBars.delete(id);
+      }
+    }
+  }
+
   private renderTelegraph(state: NetTelegraphState | null): void {
     this.telegraph.clear();
 
@@ -802,6 +878,14 @@ export class GuestArenaScene extends Phaser.Scene {
       graphics.destroy();
     }
 
+    for (const sprite of this.cloneSprites.values()) {
+      sprite.destroy();
+    }
+
+    for (const bar of this.cloneBars.values()) {
+      bar.destroy();
+    }
+
     this.playerSprites.clear();
     this.playerShields.clear();
     this.enemySprites.clear();
@@ -809,6 +893,8 @@ export class GuestArenaScene extends Phaser.Scene {
     this.turretSprites.clear();
     this.wallSprites.clear();
     this.waveSprites.clear();
+    this.cloneSprites.clear();
+    this.cloneBars.clear();
     this.renderedPlayers.clear();
   }
 }

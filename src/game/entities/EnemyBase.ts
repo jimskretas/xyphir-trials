@@ -1,12 +1,18 @@
 import Phaser from 'phaser';
 import { HealthComponent } from '../components/HealthComponent';
-import type { Player } from './Player';
 import type { ProjectileSpawn } from '../types/combat';
 
 export interface EnemyStats {
   maxHealth: number;
   speed: number;
   radius: number;
+}
+
+/** Anything enemies can chase and shoot at: players and clone decoys. */
+export interface EnemyTarget {
+  readonly x: number;
+  readonly y: number;
+  readonly isAlive: boolean;
 }
 
 const HIT_FLASH_MS = 100;
@@ -41,14 +47,14 @@ export abstract class EnemyBase extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(8);
   }
 
-  update(deltaMs: number, players: readonly Player[]): ProjectileSpawn[] {
+  update(deltaMs: number, targets: readonly EnemyTarget[]): ProjectileSpawn[] {
     this.health.update(deltaMs);
 
     if (!this.health.isAlive) {
       return [];
     }
 
-    const target = this.findNearestPlayer(players);
+    const target = this.findNearestTarget(targets);
     return this.updateBehavior(deltaMs, target);
   }
 
@@ -85,25 +91,25 @@ export abstract class EnemyBase extends Phaser.Physics.Arcade.Sprite {
 
   protected abstract updateBehavior(
     deltaMs: number,
-    target: Player | null,
+    target: EnemyTarget | null,
   ): ProjectileSpawn[];
 
   protected stopMoving(): void {
     this.setVelocity(0, 0);
   }
 
-  protected moveToward(target: Player): void {
+  protected moveToward(target: EnemyTarget): void {
     const direction = this.getSteeringDirection(target, 1);
     this.setVelocity(direction.x * this.speed, direction.y * this.speed);
   }
 
-  protected moveAwayFrom(target: Player): void {
+  protected moveAwayFrom(target: EnemyTarget): void {
     const direction = this.getSteeringDirection(target, -1);
     this.setVelocity(direction.x * this.speed, direction.y * this.speed);
   }
 
   private getSteeringDirection(
-    target: Player,
+    target: EnemyTarget,
     sign: number,
   ): Phaser.Math.Vector2 {
     const direction = new Phaser.Math.Vector2(
@@ -120,24 +126,26 @@ export abstract class EnemyBase extends Phaser.Physics.Arcade.Sprite {
     return direction.normalize();
   }
 
-  private findNearestPlayer(players: readonly Player[]): Player | null {
-    let nearest: Player | null = null;
+  private findNearestTarget(
+    targets: readonly EnemyTarget[],
+  ): EnemyTarget | null {
+    let nearest: EnemyTarget | null = null;
     let nearestDistanceSq = Number.POSITIVE_INFINITY;
 
-    for (const player of players) {
-      if (!player.isAlive) {
+    for (const target of targets) {
+      if (!target.isAlive) {
         continue;
       }
 
       const distanceSq = Phaser.Math.Distance.Squared(
         this.x,
         this.y,
-        player.x,
-        player.y,
+        target.x,
+        target.y,
       );
 
       if (distanceSq < nearestDistanceSq) {
-        nearest = player;
+        nearest = target;
         nearestDistanceSq = distanceSq;
       }
     }

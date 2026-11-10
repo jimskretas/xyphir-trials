@@ -4,7 +4,7 @@ import { Cooldown } from '../components/Cooldown';
 import { TextureKeys } from '../resources/textureKeys';
 import type { ProjectileSpawn } from '../types/combat';
 import { EnemyBase } from './EnemyBase';
-import type { Player } from './Player';
+import type { EnemyTarget } from './EnemyBase';
 
 export class Grunt extends EnemyBase {
   private readonly shotCooldown = new Cooldown(GRUNT.fireIntervalMs);
@@ -19,7 +19,7 @@ export class Grunt extends EnemyBase {
 
   protected updateBehavior(
     deltaMs: number,
-    target: Player | null,
+    target: EnemyTarget | null,
   ): ProjectileSpawn[] {
     this.shotCooldown.update(deltaMs);
 

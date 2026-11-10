@@ -4,7 +4,7 @@ import { ARENA } from '../config/gameplayConfig';
 import { Boss } from '../entities/Boss';
 import { Grunt } from '../entities/Grunt';
 import type { EnemyBase } from '../entities/EnemyBase';
-import type { Player } from '../entities/Player';
+import type { EnemyTarget } from '../entities/EnemyBase';
 import { sfx } from './SfxSystem';
 import type { SfxName } from './SfxSystem';
 import type { ProjectileSpawn } from '../types/combat';
@@ -109,10 +109,10 @@ export class EncounterSystem {
 
   update(
     deltaMs: number,
-    players: readonly Player[],
+    targets: readonly EnemyTarget[],
   ): ProjectileSpawn[] {
     if (this.currentPhase === 'grunts') {
-      return this.updateGrunts(deltaMs, players);
+      return this.updateGrunts(deltaMs, targets);
     }
 
     if (this.currentPhase === 'bossTelegraph') {
@@ -121,7 +121,7 @@ export class EncounterSystem {
     }
 
     if (this.currentPhase === 'boss') {
-      return this.updateBoss(deltaMs, players);
+      return this.updateBoss(deltaMs, targets);
     }
 
     return [];
@@ -143,7 +143,7 @@ export class EncounterSystem {
 
   private updateGrunts(
     deltaMs: number,
-    players: readonly Player[],
+    targets: readonly EnemyTarget[],
   ): ProjectileSpawn[] {
     const shots: ProjectileSpawn[] = [];
 
@@ -153,7 +153,7 @@ export class EncounterSystem {
         continue;
       }
 
-      shots.push(...grunt.update(deltaMs, players));
+      shots.push(...grunt.update(deltaMs, targets));
 
       if (!grunt.isAlive) {
         this.removeGrunt(grunt);
@@ -169,7 +169,7 @@ export class EncounterSystem {
 
   private updateBoss(
     deltaMs: number,
-    players: readonly Player[],
+    targets: readonly EnemyTarget[],
   ): ProjectileSpawn[] {
     if (!this.boss) {
       return [];
@@ -182,7 +182,7 @@ export class EncounterSystem {
       return [];
     }
 
-    return this.boss.update(deltaMs, players);
+    return this.boss.update(deltaMs, targets);
   }
 
   private beginBossTelegraph(): void {

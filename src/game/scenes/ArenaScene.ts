@@ -4,13 +4,16 @@ import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
-import { TURRET_SKILL, WALL_SKILL, WAVE_SKILL } from '../config/skills';
+import { TURRET_SKILL, WALL_SKILL, WAVE_SKILL, CLONE_SKILL } from '../config/skills';
 import { Boss } from '../entities/Boss';
+import { Clone } from '../entities/Clone';
 import { EnemyBase } from '../entities/EnemyBase';
+import type { EnemyTarget } from '../entities/EnemyBase';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import type { Skill } from '../skills/Skill';
+import { CloneSkill } from '../skills/CloneSkill';
 import { TurretSkill } from '../skills/TurretSkill';
 import { WallSkill } from '../skills/WallSkill';
 import { WaveSkill } from '../skills/WaveSkill';
@@ -28,6 +31,7 @@ import { Arena } from '../world/Arena';
 import { getRoomSession } from '../../net/session';
 import type { RoomSession } from '../../net/RoomSession';
 import type {
+  NetCloneState,
   NetEnemyState,
   NetInputFrame,
   NetPlayerState,
@@ -70,6 +74,7 @@ export class ArenaScene extends Phaser.Scene {
   private coopCamera!: CoopCamera;
   private hudModel!: HudModel;
   private playerSkills = new Map<PlayerId, Skill[]>();
+  private cloneGroup!: Phaser.GameObjects.Group;
   private debugDamageKeys: DebugDamageKey[] = [];
   private outcomeScheduled = false;
   private outcomeHandled = false;
@@ -103,6 +108,7 @@ export class ArenaScene extends Phaser.Scene {
     this.arena = new Arena(this);
     this.players = this.createPlayers();
     this.playerSkills = new Map<PlayerId, Skill[]>();
+    this.cloneGroup = this.add.group();
 
     for (const player of this.players) {
       this.playerSkills.set(player.id, [
@@ -111,6 +117,7 @@ export class ArenaScene extends Phaser.Scene {
         new WaveSkill(this, WAVE_SKILL, (_hits, kills) => {
           this.playSfx(kills > 0 ? 'enemyDeath' : 'enemyHit');
         }),
+        new CloneSkill(this, CLONE_SKILL, this.cloneGroup),
       ]);
     }
 
@@ -166,6 +173,13 @@ export class ArenaScene extends Phaser.Scene {
       this.projectileSystem.group,
       this.players,
       this.handleProjectilePlayerOverlap,
+      undefined,
+      this,
+    );
+    this.physics.add.overlap(
+      this.projectileSystem.group,
+      this.cloneGroup,
+      this.handleProjectileCloneOverlap,
       undefined,
       this,
     );
@@ -244,7 +258,7 @@ export class ArenaScene extends Phaser.Scene {
 
     const enemyShots = this.outcomeScheduled
       ? []
-      : this.encounterSystem.update(delta, this.players);
+      : this.encounterSystem.update(delta, this.enemyTargets());
 
     for (const shot of enemyShots) {
       this.projectileSystem.spawn(shot);
@@ -455,6 +469,7 @@ export class ArenaScene extends Phaser.Scene {
       turrets: this.netTurretStates(),
       walls: this.netWallStates(),
       waves: this.netWaveStates(),
+      clones: this.netCloneStates(),
       boss: boss
         ? {
             health: boss.health.current,
@@ -580,6 +595,36 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     return waves;
+  }
+
+  private netCloneStates(): NetCloneState[] {
+    const clones: NetCloneState[] = [];
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        if (skill instanceof CloneSkill && skill.renderState) {
+          clones.push(skill.renderState);
+        }
+      }
+    }
+
+    return clones;
+  }
+
+  private enemyTargets(): EnemyTarget[] {
+    const targets: EnemyTarget[] = [...this.players];
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        const clone = skill instanceof CloneSkill ? skill.activeClone : null;
+
+        if (clone) {
+          targets.push(clone);
+        }
+      }
+    }
+
+    return targets;
   }
 
   private handleRestartRequest(): void {
@@ -713,6 +758,31 @@ export class ArenaScene extends Phaser.Scene {
     this.projectileSystem.remove(projectile);
   }
 
+  private handleProjectileCloneOverlap(
+    object1: ArcadeCollisionObject,
+    object2: ArcadeCollisionObject,
+  ): void {
+    const projectile = this.asProjectile(object1, object2);
+    const clone = this.asClone(object1, object2);
+
+    if (!projectile || !clone || !clone.isAlive) {
+      return;
+    }
+
+    if (
+      !this.projectileSystem.has(projectile) ||
+      projectile.team !== 'enemies'
+    ) {
+      return;
+    }
+
+    if (clone.takeDamage(projectile.damage)) {
+      this.playSfx('playerHit');
+    }
+
+    this.projectileSystem.remove(projectile);
+  }
+
   private tryShieldReflect(projectile: Projectile, player: Player): boolean {
     if (!player.isAlive || !player.shield.isActive) {
       return false;
@@ -788,6 +858,17 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     return object2 instanceof Player ? object2 : null;
+  }
+
+  private asClone(
+    object1: ArcadeCollisionObject,
+    object2: ArcadeCollisionObject,
+  ): Clone | null {
+    if (object1 instanceof Clone) {
+      return object1;
+    }
+
+    return object2 instanceof Clone ? object2 : null;
   }
 
   private shouldPlayersCollide(

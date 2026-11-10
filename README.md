@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite. It runs entirely in the browser and supports online two-player co-op through a free Supabase Realtime room relay, so it can be hosted on GitHub Pages with no game server of its own.
 
-A lobby lets you create a room and share a 5-character code, join a friend's room, or start a solo run. Once the host starts, both players fight a grunt wave and then the Xyphir Warden boss using fireballs, directional shields, dashes, a deployable turret and a conjured wall.
+A lobby lets you create a room and share a 5-character code, join a friend's room, or start a solo run. Once the host starts, both players fight a grunt wave and then the Xyphir Warden boss using fireballs, directional shields, dashes, a deployable turret, a conjured wall, a damaging wave and a clone decoy.
 
 ## Requirements
 
@@ -40,12 +40,13 @@ Online, each player uses the same keyboard layout on their own machine. Keyboard
 | `W` | Deploy turret |
 | `E` | Conjure wall |
 | `R` | Cast wave (also restarts after a result) |
+| `T` | Summon clone |
 | `Esc` | Leave the room / return to the lobby |
 | `` ` `` | Toggle debug overlay in development |
 
 `R` casts the wave during a run and still restarts from the result screen.
 
-Both players have the turret, wall and wave skills. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. A wall appears 72 pixels in front of the caster, lasts 5 seconds, and has a 10 second cooldown. It blocks every projectile that touches it, including fireballs, turret bolts, reflected shots and enemy bolts. A wave is a short-range aura around the caster that lasts 5 seconds, has a 10 second cooldown, and damages nearby enemies twice per second. The tick rate is a data stat so future powerups can raise it. Casting a skill again while it is ready replaces the previous instance, so each player can only have one of each active at a time.
+Both players have the turret, wall, wave and clone skills. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. A wall appears 72 pixels in front of the caster, lasts 5 seconds, and has a 10 second cooldown. It blocks every projectile that touches it, including fireballs, turret bolts, reflected shots and enemy bolts. A wave is a short-range aura around the caster that lasts 5 seconds, has a 10 second cooldown, and damages nearby enemies twice per second. The tick rate is a data stat so future powerups can raise it. A clone is a decoy that lasts 5 seconds and has a 10 second cooldown. It inherits one third of the caster's current health, enemies can target it, and it fires two projectiles per second toward its owner. Those projectiles can be reflected with the shield for extra damage before the clone expires or its health runs out. Casting a skill again while it is ready replaces the previous instance, so each player can only have one of each active at a time.
 
 Facing follows the last movement direction. Dash uses the held movement direction, or the current facing when standing still. While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 
@@ -126,10 +127,10 @@ src/
   game/
     config/               Game config, tuning, controls, scene keys, palette
     scenes/               LobbyScene, ArenaScene (host), GuestArenaScene, HudScene
-    entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret, Wall
+    entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret, Wall, Clone
     components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
-    skills/               Skill base class, modifiers, Turret, Wall and Wave skills
+    skills/               Skill base class, modifiers, Turret, Wall, Wave and Clone skills
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
@@ -140,7 +141,7 @@ src/
 ### Architectural notes
 
 - `LobbyScene` is the boot scene. It creates or joins a room through `createRoom.ts`, then starts `ArenaScene` for the host or `GuestArenaScene` for the guest.
-- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, walls, waves, boss state and the telegraph.
+- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, walls, waves, clones, boss state and the telegraph.
 - `GuestArenaScene` has no gameplay physics. It sends local input, buffers snapshots, interpolates entity transforms, and drives the same HUD and result overlay as the host.
 - `RoomSession` is transport-agnostic. It handles join retries, welcome/rejection, start/restart messages, presence, disconnects, and SFX forwarding. `SupabaseTransport` and `LocalTransport` share one small interface.
 - Scene restarts during a run preserve the room session. Only explicit leave/cancel closes it, so asking for a rematch does not drop the connection.

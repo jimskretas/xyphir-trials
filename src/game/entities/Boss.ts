@@ -3,7 +3,7 @@ import { BOSS } from '../config/combatConfig';
 import { TextureKeys } from '../resources/textureKeys';
 import type { ProjectileSpawn } from '../types/combat';
 import { EnemyBase } from './EnemyBase';
-import type { Player } from './Player';
+import type { EnemyTarget } from './EnemyBase';
 
 type BossPattern = 'burst' | 'nova';
 
@@ -30,7 +30,7 @@ export class Boss extends EnemyBase {
 
   protected updateBehavior(
     deltaMs: number,
-    target: Player | null,
+    target: EnemyTarget | null,
   ): ProjectileSpawn[] {
     const shots: ProjectileSpawn[] = [];
 
@@ -91,7 +91,7 @@ export class Boss extends EnemyBase {
     return this.health.ratio <= 0.5;
   }
 
-  private reposition(target: Player): void {
+  private reposition(target: EnemyTarget): void {
     const distance = Phaser.Math.Distance.Between(
       this.x,
       this.y,
@@ -116,7 +116,7 @@ export class Boss extends EnemyBase {
     }
   }
 
-  private launchPattern(target: Player, shots: ProjectileSpawn[]): void {
+  private launchPattern(target: EnemyTarget, shots: ProjectileSpawn[]): void {
     this.clearCharge();
 
     if (this.pendingPattern === 'nova') {
@@ -139,7 +139,7 @@ export class Boss extends EnemyBase {
     }
   }
 
-  private emitBurstShot(target: Player, shots: ProjectileSpawn[]): void {
+  private emitBurstShot(target: EnemyTarget, shots: ProjectileSpawn[]): void {
     const index = BOSS.burstCount - this.burstRemaining;
     const spread = (index - (BOSS.burstCount - 1) / 2) * 0.08;
     const angle =
