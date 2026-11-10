@@ -92,6 +92,14 @@ export interface NetWallState {
   alpha: number;
 }
 
+export interface NetWaveState {
+  ownerId: PlayerId;
+  x: number;
+  y: number;
+  radius: number;
+  alpha: number;
+}
+
 export interface NetBossState {
   health: number;
   maxHealth: number;
@@ -113,6 +121,7 @@ export interface NetSnapshot {
   projectiles: NetProjectileState[];
   turrets: NetTurretState[];
   walls: NetWallState[];
+  waves: NetWaveState[];
   boss: NetBossState | null;
   telegraph: NetTelegraphState | null;
   objective: string;

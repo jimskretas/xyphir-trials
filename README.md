@@ -39,13 +39,13 @@ Online, each player uses the same keyboard layout on their own machine. Keyboard
 | `Space` | Dash |
 | `W` | Deploy turret |
 | `E` | Conjure wall |
-| `R` | Restart after a result (guest requests a restart) |
+| `R` | Cast wave (also restarts after a result) |
 | `Esc` | Leave the room / return to the lobby |
 | `` ` `` | Toggle debug overlay in development |
 
-`R` is reserved for a future active skill and still restarts from the result screen.
+`R` casts the wave during a run and still restarts from the result screen.
 
-Both players have the turret and wall skills. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. A wall appears 72 pixels in front of the caster, lasts 5 seconds, and has a 10 second cooldown. It blocks every projectile that touches it, including fireballs, turret bolts, reflected shots and enemy bolts. Casting either skill again while it is ready replaces the previous instance, so each player can only have one of each active at a time.
+Both players have the turret, wall and wave skills. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. A wall appears 72 pixels in front of the caster, lasts 5 seconds, and has a 10 second cooldown. It blocks every projectile that touches it, including fireballs, turret bolts, reflected shots and enemy bolts. A wave is a short-range aura around the caster that lasts 5 seconds, has a 10 second cooldown, and damages nearby enemies twice per second. The tick rate is a data stat so future powerups can raise it. Casting a skill again while it is ready replaces the previous instance, so each player can only have one of each active at a time.
 
 Facing follows the last movement direction. Dash uses the held movement direction, or the current facing when standing still. While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 
@@ -129,7 +129,7 @@ src/
     entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret, Wall
     components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
-    skills/               Skill base class, modifiers, TurretSkill and WallSkill
+    skills/               Skill base class, modifiers, Turret, Wall and Wave skills
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
@@ -140,7 +140,7 @@ src/
 ### Architectural notes
 
 - `LobbyScene` is the boot scene. It creates or joins a room through `createRoom.ts`, then starts `ArenaScene` for the host or `GuestArenaScene` for the guest.
-- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, walls, boss state and the telegraph.
+- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, walls, waves, boss state and the telegraph.
 - `GuestArenaScene` has no gameplay physics. It sends local input, buffers snapshots, interpolates entity transforms, and drives the same HUD and result overlay as the host.
 - `RoomSession` is transport-agnostic. It handles join retries, welcome/rejection, start/restart messages, presence, disconnects, and SFX forwarding. `SupabaseTransport` and `LocalTransport` share one small interface.
 - Scene restarts during a run preserve the room session. Only explicit leave/cancel closes it, so asking for a rematch does not drop the connection.

@@ -4,7 +4,7 @@ import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
-import { TURRET_SKILL, WALL_SKILL } from '../config/skills';
+import { TURRET_SKILL, WALL_SKILL, WAVE_SKILL } from '../config/skills';
 import { Boss } from '../entities/Boss';
 import { EnemyBase } from '../entities/EnemyBase';
 import { Player } from '../entities/Player';
@@ -13,6 +13,7 @@ import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import type { Skill } from '../skills/Skill';
 import { TurretSkill } from '../skills/TurretSkill';
 import { WallSkill } from '../skills/WallSkill';
+import { WaveSkill } from '../skills/WaveSkill';
 import { CoopCamera } from '../systems/CoopCamera';
 import { EncounterSystem } from '../systems/EncounterSystem';
 import type { EncounterPhase } from '../systems/EncounterSystem';
@@ -34,6 +35,7 @@ import type {
   NetSnapshot,
   NetTurretState,
   NetWallState,
+  NetWaveState,
 } from '../../net/types';
 
 const OUTCOME_DELAY_MS = 900;
@@ -106,6 +108,9 @@ export class ArenaScene extends Phaser.Scene {
       this.playerSkills.set(player.id, [
         new TurretSkill(this, TURRET_SKILL),
         new WallSkill(this, WALL_SKILL),
+        new WaveSkill(this, WAVE_SKILL, (_hits, kills) => {
+          this.playSfx(kills > 0 ? 'enemyDeath' : 'enemyHit');
+        }),
       ]);
     }
 
@@ -449,6 +454,7 @@ export class ArenaScene extends Phaser.Scene {
       projectiles: this.netProjectileStates(),
       turrets: this.netTurretStates(),
       walls: this.netWallStates(),
+      waves: this.netWaveStates(),
       boss: boss
         ? {
             health: boss.health.current,
@@ -560,6 +566,20 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     return walls;
+  }
+
+  private netWaveStates(): NetWaveState[] {
+    const waves: NetWaveState[] = [];
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        if (skill instanceof WaveSkill && skill.renderState) {
+          waves.push(skill.renderState);
+        }
+      }
+    }
+
+    return waves;
   }
 
   private handleRestartRequest(): void {

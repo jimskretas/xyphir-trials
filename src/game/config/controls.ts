@@ -58,6 +58,12 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
         key: KeyCodes.E,
         label: 'E',
       },
+      {
+        id: 'wave',
+        name: 'Wave',
+        key: KeyCodes.R,
+        label: 'R',
+      },
     ],
     binding: {
       up: KeyCodes.UP,
@@ -90,6 +96,12 @@ export const PLAYER_CONTROLS: Record<PlayerId, PlayerControls> = {
         name: 'Wall',
         key: KeyCodes.E,
         label: 'E',
+      },
+      {
+        id: 'wave',
+        name: 'Wave',
+        key: KeyCodes.R,
+        label: 'R',
       },
     ],
     binding: {

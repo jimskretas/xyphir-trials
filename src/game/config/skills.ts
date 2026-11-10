@@ -18,6 +18,13 @@ export interface WallSkillDefinition extends SkillDefinition {
   spawnOffset: number;
 }
 
+export interface WaveSkillDefinition extends SkillDefinition {
+  durationMs: number;
+  radius: number;
+  ticksPerSecond: number;
+  damagePerTick: number;
+}
+
 /**
  * Base turret. Elemental variants can reuse this shape and add their own
  * modifiers, textures and projectile presets later.
@@ -54,4 +61,19 @@ export const WALL_SKILL: WallSkillDefinition = {
   length: 190,
   thickness: 20,
   spawnOffset: 72,
+};
+
+/**
+ * Short-range damaging aura. Ticks per second is a data stat so future
+ * powerups can raise the frequency without touching the skill logic.
+ */
+export const WAVE_SKILL: WaveSkillDefinition = {
+  id: 'wave',
+  name: 'Wave',
+  description: 'Damages nearby enemies in repeated pulses.',
+  cooldownMs: 10000,
+  durationMs: 5000,
+  radius: 120,
+  ticksPerSecond: 2,
+  damagePerTick: 14,
 };

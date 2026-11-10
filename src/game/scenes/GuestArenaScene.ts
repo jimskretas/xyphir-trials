@@ -23,6 +23,7 @@ import type {
   NetTelegraphState,
   NetTurretState,
   NetWallState,
+  NetWaveState,
 } from '../../net/types';
 
 const INPUT_INTERVAL_MS = 66;
@@ -62,6 +63,7 @@ export class GuestArenaScene extends Phaser.Scene {
   private readonly projectileSprites = new Map<number, Phaser.GameObjects.Image>();
   private readonly turretSprites = new Map<PlayerId, Phaser.GameObjects.Image>();
   private readonly wallSprites = new Map<PlayerId, Phaser.GameObjects.Rectangle>();
+  private readonly waveSprites = new Map<PlayerId, Phaser.GameObjects.Graphics>();
   private readonly renderedPlayers = new Map<PlayerId, RenderedPoint>();
   private telegraph!: Phaser.GameObjects.Graphics;
 
@@ -179,6 +181,7 @@ export class GuestArenaScene extends Phaser.Scene {
     );
     this.renderTurrets(before.snapshot.turrets, after.snapshot.turrets, t);
     this.renderWalls(before.snapshot.walls, after.snapshot.walls, t);
+    this.renderWaves(before.snapshot.waves, after.snapshot.waves, t);
     this.renderTelegraph(after.snapshot.telegraph);
 
     const focus = [...this.renderedPlayers.values()];
@@ -492,6 +495,50 @@ export class GuestArenaScene extends Phaser.Scene {
     }
   }
 
+  private renderWaves(
+    before: readonly NetWaveState[],
+    after: readonly NetWaveState[],
+    t: number,
+  ): void {
+    const seen = new Set<PlayerId>();
+
+    for (const state of after) {
+      seen.add(state.ownerId);
+
+      let graphics = this.waveSprites.get(state.ownerId);
+
+      if (!graphics) {
+        graphics = this.add.graphics().setDepth(6);
+        this.waveSprites.set(state.ownerId, graphics);
+      }
+
+      const previous = before.find(
+        (candidate) => candidate.ownerId === state.ownerId,
+      );
+      const x = previous ? Phaser.Math.Linear(previous.x, state.x, t) : state.x;
+      const y = previous ? Phaser.Math.Linear(previous.y, state.y, t) : state.y;
+      const color =
+        state.ownerId === 'p1' ? COLORS.playerOne : COLORS.playerTwo;
+      const alpha = Math.max(0, Math.min(1, state.alpha));
+
+      graphics.clear();
+      graphics.setPosition(x, y);
+      graphics.fillStyle(color, 0.07 + alpha * 0.1);
+      graphics.fillCircle(0, 0, state.radius);
+      graphics.lineStyle(2, color, alpha);
+      graphics.strokeCircle(0, 0, state.radius);
+      graphics.lineStyle(1, color, alpha * 0.5);
+      graphics.strokeCircle(0, 0, state.radius * 0.62);
+    }
+
+    for (const [id, graphics] of this.waveSprites) {
+      if (!seen.has(id)) {
+        graphics.destroy();
+        this.waveSprites.delete(id);
+      }
+    }
+  }
+
   private renderTelegraph(state: NetTelegraphState | null): void {
     this.telegraph.clear();
 
@@ -751,12 +798,17 @@ export class GuestArenaScene extends Phaser.Scene {
       sprite.destroy();
     }
 
+    for (const graphics of this.waveSprites.values()) {
+      graphics.destroy();
+    }
+
     this.playerSprites.clear();
     this.playerShields.clear();
     this.enemySprites.clear();
     this.projectileSprites.clear();
     this.turretSprites.clear();
     this.wallSprites.clear();
+    this.waveSprites.clear();
     this.renderedPlayers.clear();
   }
 }

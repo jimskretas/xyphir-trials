@@ -550,7 +550,7 @@ export class LobbyScene extends Phaser.Scene {
     this.addText(
       VIEWPORT.width / 2,
       y + 120,
-      'Both players move with the arrow keys, C / Q to fight, Space to dash, W / E for skills and 1 for auto-fire.',
+      'Both players move with the arrow keys, C / Q to fight, Space to dash, W / E / R for skills and 1 for auto-fire.',
       12,
       UI_COLORS.startMuted,
     );
@@ -583,7 +583,7 @@ export class LobbyScene extends Phaser.Scene {
     this.addText(
       VIEWPORT.width / 2,
       y + 40,
-      'W  TURRET     E  WALL     R  RESTART AT RESULT     ESC  LEAVE',
+      'W  TURRET     E  WALL     R  WAVE     ESC  LEAVE',
       13,
       UI_COLORS.startBody,
     );
