@@ -109,7 +109,7 @@ export class Clone
         x: this.x + Math.cos(angle) * this.stats.projectileOffset,
         y: this.y + Math.sin(angle) * this.stats.projectileOffset,
         angle,
-        team: 'enemies',
+        team: 'players',
         ownerId: this.cloneId,
         sourceId: this.cloneId,
         preset: this.stats.projectile,
