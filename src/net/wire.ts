@@ -21,6 +21,7 @@ export function isNetSnapshot(value: unknown): value is NetSnapshot {
     Array.isArray(value.enemies) &&
     Array.isArray(value.projectiles) &&
     Array.isArray(value.turrets) &&
+    Array.isArray(value.walls) &&
     (value.boss === null || isRecord(value.boss)) &&
     (value.telegraph === null || isRecord(value.telegraph)) &&
     typeof value.objective === 'string' &&

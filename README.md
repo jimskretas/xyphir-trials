@@ -2,7 +2,7 @@
 
 A cooperative, top-down dungeon combat game built with Phaser 4, TypeScript and Vite. It runs entirely in the browser and supports online two-player co-op through a free Supabase Realtime room relay, so it can be hosted on GitHub Pages with no game server of its own.
 
-A lobby lets you create a room and share a 5-character code, join a friend's room, or start a solo run. Once the host starts, both players fight a grunt wave and then the Xyphir Warden boss using fireballs, directional shields, dashes and a deployable turret.
+A lobby lets you create a room and share a 5-character code, join a friend's room, or start a solo run. Once the host starts, both players fight a grunt wave and then the Xyphir Warden boss using fireballs, directional shields, dashes, a deployable turret and a conjured wall.
 
 ## Requirements
 
@@ -38,13 +38,14 @@ Online, each player uses the same keyboard layout on their own machine. Keyboard
 | `Q` | Shield (face a projectile to reflect it) |
 | `Space` | Dash |
 | `W` | Deploy turret |
+| `E` | Conjure wall |
 | `R` | Restart after a result (guest requests a restart) |
 | `Esc` | Leave the room / return to the lobby |
 | `` ` `` | Toggle debug overlay in development |
 
-`E` and `R` are reserved for future active skills; `R` is contextual and still restarts from the result screen.
+`R` is reserved for a future active skill and still restarts from the result screen.
 
-Both players have the turret skill. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. Casting again while ready replaces the previous turret, so each player can only have one active at a time.
+Both players have the turret and wall skills. A turret lasts 10 seconds, fires at the nearest enemy in range every 0.6 seconds, and has a 5 second cooldown. A wall appears 72 pixels in front of the caster, lasts 5 seconds, and has a 10 second cooldown. It blocks every projectile that touches it, including fireballs, turret bolts, reflected shots and enemy bolts. Casting either skill again while it is ready replaces the previous instance, so each player can only have one of each active at a time.
 
 Facing follows the last movement direction. Dash uses the held movement direction, or the current facing when standing still. While dashing, a player is invulnerable and passes through projectiles, enemies and the other player. Reflection requires an active shield, a projectile inside the frontal cone, and a projectile still moving toward the player.
 
@@ -125,10 +126,10 @@ src/
   game/
     config/               Game config, tuning, controls, scene keys, palette
     scenes/               LobbyScene, ArenaScene (host), GuestArenaScene, HudScene
-    entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret
+    entities/             Player, Projectile, EnemyBase, Grunt, Boss, Turret, Wall
     components/           Movement, Facing, Health, Cooldown, Shield, Dash
     abilities/            FireballAbility
-    skills/               Skill base class, modifiers and TurretSkill
+    skills/               Skill base class, modifiers, TurretSkill and WallSkill
     systems/              InputSystem, CoopCamera, ProjectileSystem, EncounterSystem, SfxSystem
     types/                Combat and projectile types
     world/                Arena construction and wall bodies
@@ -139,7 +140,7 @@ src/
 ### Architectural notes
 
 - `LobbyScene` is the boot scene. It creates or joins a room through `createRoom.ts`, then starts `ArenaScene` for the host or `GuestArenaScene` for the guest.
-- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, boss state and the telegraph.
+- `ArenaScene` owns the authoritative simulation on the host. It accepts remote input for P2, applies local input for P1, and broadcasts compact snapshots of players, enemies, projectiles, turrets, walls, boss state and the telegraph.
 - `GuestArenaScene` has no gameplay physics. It sends local input, buffers snapshots, interpolates entity transforms, and drives the same HUD and result overlay as the host.
 - `RoomSession` is transport-agnostic. It handles join retries, welcome/rejection, start/restart messages, presence, disconnects, and SFX forwarding. `SupabaseTransport` and `LocalTransport` share one small interface.
 - Scene restarts during a run preserve the room session. Only explicit leave/cancel closes it, so asking for a rematch does not drop the connection.
@@ -148,6 +149,7 @@ src/
 - `HudScene` renders in parallel with its own camera, so gameplay camera zoom never distorts the HUD or debug overlay.
 - `CoopCamera` follows the players' midpoint and zooms out just enough to keep both on screen.
 - Projectiles carry team, current owner and original source IDs. The projectile system assigns stable net IDs and handles spawning and cleanup; abilities only supply spawn parameters, so shield reflection can reuse the same path.
+- Conjured walls are oriented rectangles tested against projectile positions each frame. Arcade bodies are axis-aligned, so they cannot express a rotated barrier; walls intentionally block projectiles only and never players or enemies.
 - `EncounterSystem` owns the phase flow, boss spawn telegraph and dead-enemy cleanup, and exposes telegraph render state for snapshots. Bullet damage is tuned per team in `config/combatTuning.ts`.
 - `SfxSystem` synthesises all sound effects with Web Audio oscillators and noise. The audio context is created and resumed on the first lobby keypress, satisfying browser autoplay rules. The host forwards sound events to the guest.
 - `Arena` owns the floor, grid and static wall bodies, keeping world construction out of the scene.

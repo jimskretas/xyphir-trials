@@ -3,6 +3,7 @@ import { BOSS, SHIELD } from '../config/combatConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
+import { COLORS } from '../config/theme';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import { TextureKeys } from '../resources/textureKeys';
 import { CoopCamera } from '../systems/CoopCamera';
@@ -21,6 +22,7 @@ import type {
   NetSnapshot,
   NetTelegraphState,
   NetTurretState,
+  NetWallState,
 } from '../../net/types';
 
 const INPUT_INTERVAL_MS = 66;
@@ -59,6 +61,7 @@ export class GuestArenaScene extends Phaser.Scene {
   private readonly enemySprites = new Map<string, Phaser.GameObjects.Image>();
   private readonly projectileSprites = new Map<number, Phaser.GameObjects.Image>();
   private readonly turretSprites = new Map<PlayerId, Phaser.GameObjects.Image>();
+  private readonly wallSprites = new Map<PlayerId, Phaser.GameObjects.Rectangle>();
   private readonly renderedPlayers = new Map<PlayerId, RenderedPoint>();
   private telegraph!: Phaser.GameObjects.Graphics;
 
@@ -175,6 +178,7 @@ export class GuestArenaScene extends Phaser.Scene {
       t,
     );
     this.renderTurrets(before.snapshot.turrets, after.snapshot.turrets, t);
+    this.renderWalls(before.snapshot.walls, after.snapshot.walls, t);
     this.renderTelegraph(after.snapshot.telegraph);
 
     const focus = [...this.renderedPlayers.values()];
@@ -438,6 +442,56 @@ export class GuestArenaScene extends Phaser.Scene {
     }
   }
 
+  private renderWalls(
+    before: readonly NetWallState[],
+    after: readonly NetWallState[],
+    t: number,
+  ): void {
+    const seen = new Set<PlayerId>();
+
+    for (const state of after) {
+      seen.add(state.ownerId);
+
+      let sprite = this.wallSprites.get(state.ownerId);
+
+      if (!sprite) {
+        const color =
+          state.ownerId === 'p1' ? COLORS.playerOne : COLORS.playerTwo;
+
+        sprite = this.add
+          .rectangle(
+            state.x,
+            state.y,
+            state.length,
+            state.thickness,
+            color,
+            0.28,
+          )
+          .setStrokeStyle(2, color, 0.9)
+          .setDepth(7);
+        this.wallSprites.set(state.ownerId, sprite);
+      }
+
+      const previous = before.find(
+        (candidate) => candidate.ownerId === state.ownerId,
+      );
+      const x = previous ? Phaser.Math.Linear(previous.x, state.x, t) : state.x;
+      const y = previous ? Phaser.Math.Linear(previous.y, state.y, t) : state.y;
+      const rotation = previous
+        ? this.lerpAngle(previous.rotation, state.rotation, t)
+        : state.rotation;
+
+      sprite.setPosition(x, y).setRotation(rotation).setAlpha(state.alpha);
+    }
+
+    for (const [id, sprite] of this.wallSprites) {
+      if (!seen.has(id)) {
+        sprite.destroy();
+        this.wallSprites.delete(id);
+      }
+    }
+  }
+
   private renderTelegraph(state: NetTelegraphState | null): void {
     this.telegraph.clear();
 
@@ -506,10 +560,17 @@ export class GuestArenaScene extends Phaser.Scene {
         state.dash.ratio = netState.dash.ratio;
       }
 
-      if (state.skill) {
-        state.skill.ready = netState.skill?.ready ?? false;
-        state.skill.active = netState.skill?.active ?? false;
-        state.skill.ratio = netState.skill?.ratio ?? 0;
+      for (let index = 0; index < state.skills.length; index += 1) {
+        const hudSkill = state.skills[index];
+        const netSkill = netState.skills[index];
+
+        if (!hudSkill || !netSkill) {
+          continue;
+        }
+
+        hudSkill.ready = netSkill.ready;
+        hudSkill.active = netSkill.active;
+        hudSkill.ratio = netSkill.ratio;
       }
     }
   }
@@ -584,7 +645,7 @@ export class GuestArenaScene extends Phaser.Scene {
       shield: false,
       dash: false,
       autoAttackToggle: false,
-      skillCasts: [false],
+      skillCasts: PLAYER_CONTROLS.p2.skills.map(() => false),
     };
   }
 
@@ -686,11 +747,16 @@ export class GuestArenaScene extends Phaser.Scene {
       sprite.destroy();
     }
 
+    for (const sprite of this.wallSprites.values()) {
+      sprite.destroy();
+    }
+
     this.playerSprites.clear();
     this.playerShields.clear();
     this.enemySprites.clear();
     this.projectileSprites.clear();
     this.turretSprites.clear();
+    this.wallSprites.clear();
     this.renderedPlayers.clear();
   }
 }

@@ -1,5 +1,6 @@
 import type { EnemyBase } from '../entities/EnemyBase';
 import type { Player } from '../entities/Player';
+import type { Projectile } from '../entities/Projectile';
 import type { ProjectileSpawn } from '../types/combat';
 import { Cooldown } from '../components/Cooldown';
 
@@ -87,6 +88,10 @@ export abstract class Skill {
 
   get statusRatio(): number {
     return this.isActive ? this.activeRatio : this.cooldown.readyRatio;
+  }
+
+  blocksProjectile(_projectile: Projectile): boolean {
+    return false;
   }
 
   protected abstract cast(context: SkillCastContext): void;

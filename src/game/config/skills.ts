@@ -11,6 +11,13 @@ export interface TurretSkillDefinition extends SkillDefinition {
   projectile: ProjectilePreset;
 }
 
+export interface WallSkillDefinition extends SkillDefinition {
+  durationMs: number;
+  length: number;
+  thickness: number;
+  spawnOffset: number;
+}
+
 /**
  * Base turret. Elemental variants can reuse this shape and add their own
  * modifiers, textures and projectile presets later.
@@ -32,4 +39,19 @@ export const TURRET_SKILL: TurretSkillDefinition = {
     radius: 5,
     reflectable: false,
   },
+};
+
+/**
+ * Conjured barrier. Oriented across the caster's facing and blocks every
+ * projectile that crosses it, regardless of team.
+ */
+export const WALL_SKILL: WallSkillDefinition = {
+  id: 'wall',
+  name: 'Wall',
+  description: 'Conjures a wall that blocks all projectiles.',
+  cooldownMs: 10000,
+  durationMs: 5000,
+  length: 190,
+  thickness: 20,
+  spawnOffset: 72,
 };

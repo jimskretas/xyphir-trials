@@ -25,7 +25,7 @@ export interface PlayerHudState {
   fireball: AbilityHudState | null;
   shield: AbilityHudState | null;
   dash: AbilityHudState | null;
-  skill: SkillHudState | null;
+  skills: SkillHudState[];
 }
 
 export interface BossHudState {

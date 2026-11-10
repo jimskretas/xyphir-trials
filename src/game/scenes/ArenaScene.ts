@@ -4,7 +4,7 @@ import { ARENA, DEBUG, PLAYER } from '../config/gameplayConfig';
 import { PLAYER_CONTROLS } from '../config/controls';
 import type { PlayerId } from '../config/controls';
 import { SceneKeys } from '../config/sceneKeys';
-import { TURRET_SKILL } from '../config/skills';
+import { TURRET_SKILL, WALL_SKILL } from '../config/skills';
 import { Boss } from '../entities/Boss';
 import { EnemyBase } from '../entities/EnemyBase';
 import { Player } from '../entities/Player';
@@ -12,6 +12,7 @@ import { Projectile } from '../entities/Projectile';
 import { createPlaceholderTextures } from '../resources/placeholderTextures';
 import type { Skill } from '../skills/Skill';
 import { TurretSkill } from '../skills/TurretSkill';
+import { WallSkill } from '../skills/WallSkill';
 import { CoopCamera } from '../systems/CoopCamera';
 import { EncounterSystem } from '../systems/EncounterSystem';
 import type { EncounterPhase } from '../systems/EncounterSystem';
@@ -32,6 +33,7 @@ import type {
   NetProjectileState,
   NetSnapshot,
   NetTurretState,
+  NetWallState,
 } from '../../net/types';
 
 const OUTCOME_DELAY_MS = 900;
@@ -101,7 +103,10 @@ export class ArenaScene extends Phaser.Scene {
     this.playerSkills = new Map<PlayerId, Skill[]>();
 
     for (const player of this.players) {
-      this.playerSkills.set(player.id, [new TurretSkill(this, TURRET_SKILL)]);
+      this.playerSkills.set(player.id, [
+        new TurretSkill(this, TURRET_SKILL),
+        new WallSkill(this, WALL_SKILL),
+      ]);
     }
 
     this.physics.add.collider(this.players, this.arena.walls);
@@ -241,6 +246,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.projectileSystem.update(delta);
+    this.handleWallBlocks();
     this.handleDebugDamage();
     this.coopCamera.update(this.players);
     this.syncHudState();
@@ -389,7 +395,7 @@ export class ArenaScene extends Phaser.Scene {
       shield: false,
       dash: false,
       autoAttackToggle: false,
-      skillCasts: [false],
+      skillCasts: PLAYER_CONTROLS.p1.skills.map(() => false),
     };
   }
 
@@ -442,6 +448,7 @@ export class ArenaScene extends Phaser.Scene {
       enemies: this.netEnemyStates(),
       projectiles: this.netProjectileStates(),
       turrets: this.netTurretStates(),
+      walls: this.netWallStates(),
       boss: boss
         ? {
             health: boss.health.current,
@@ -458,7 +465,7 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private netPlayerState(player: Player): NetPlayerState {
-    const skill = this.playerSkills.get(player.id)?.[0] ?? null;
+    const skills = this.playerSkills.get(player.id) ?? [];
 
     return {
       id: player.id,
@@ -492,13 +499,11 @@ export class ArenaScene extends Phaser.Scene {
           ? player.dash.activeRatio
           : player.dash.cooldown.readyRatio,
       },
-      skill: skill
-        ? {
-            ready: skill.isReady,
-            active: skill.isActive,
-            ratio: skill.statusRatio,
-          }
-        : null,
+      skills: skills.map((skill) => ({
+        ready: skill.isReady,
+        active: skill.isActive,
+        ratio: skill.statusRatio,
+      })),
     };
   }
 
@@ -541,6 +546,20 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     return turrets;
+  }
+
+  private netWallStates(): NetWallState[] {
+    const walls: NetWallState[] = [];
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        if (skill instanceof WallSkill && skill.renderState) {
+          walls.push(skill.renderState);
+        }
+      }
+    }
+
+    return walls;
   }
 
   private handleRestartRequest(): void {
@@ -588,6 +607,32 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     return 'R  RESTART FOR BOTH          ESC  LEAVE ROOM';
+  }
+
+  private handleWallBlocks(): void {
+    const projectiles = this.projectileSystem.liveProjectiles;
+
+    if (projectiles.length === 0) {
+      return;
+    }
+
+    for (const skills of this.playerSkills.values()) {
+      for (const skill of skills) {
+        if (!skill.isActive) {
+          continue;
+        }
+
+        for (const projectile of projectiles) {
+          if (!projectile.active) {
+            continue;
+          }
+
+          if (skill.blocksProjectile(projectile)) {
+            this.projectileSystem.remove(projectile);
+          }
+        }
+      }
+    }
   }
 
   private handleProjectileEnemyOverlap(
@@ -819,12 +864,19 @@ export class ArenaScene extends Phaser.Scene {
           : player.dash.cooldown.readyRatio;
       }
 
-      const skill = this.playerSkills.get(player.id)?.[0] ?? null;
+      const skills = this.playerSkills.get(player.id) ?? [];
 
-      if (state.skill) {
-        state.skill.active = skill?.isActive ?? false;
-        state.skill.ready = skill?.isReady ?? false;
-        state.skill.ratio = skill?.statusRatio ?? 0;
+      for (let index = 0; index < state.skills.length; index += 1) {
+        const hudSkill = state.skills[index];
+        const skill = skills[index];
+
+        if (!hudSkill || !skill) {
+          continue;
+        }
+
+        hudSkill.active = skill.isActive;
+        hudSkill.ready = skill.isReady;
+        hudSkill.ratio = skill.statusRatio;
       }
     }
   }

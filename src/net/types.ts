@@ -48,7 +48,7 @@ export interface NetPlayerState {
   fireball: NetAbilityState;
   shield: NetAbilityState;
   dash: NetAbilityState;
-  skill: NetAbilityState | null;
+  skills: NetAbilityState[];
 }
 
 export interface NetEnemyState {
@@ -82,6 +82,16 @@ export interface NetTurretState {
   alpha: number;
 }
 
+export interface NetWallState {
+  ownerId: PlayerId;
+  x: number;
+  y: number;
+  rotation: number;
+  length: number;
+  thickness: number;
+  alpha: number;
+}
+
 export interface NetBossState {
   health: number;
   maxHealth: number;
@@ -102,6 +112,7 @@ export interface NetSnapshot {
   enemies: NetEnemyState[];
   projectiles: NetProjectileState[];
   turrets: NetTurretState[];
+  walls: NetWallState[];
   boss: NetBossState | null;
   telegraph: NetTelegraphState | null;
   objective: string;
